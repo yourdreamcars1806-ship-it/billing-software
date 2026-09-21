@@ -149,8 +149,8 @@ export function buildInvoiceHtml(
           </td>
           ${
             !isCar
-              ? `<td class="c-size">${escapeHtml(item.size || "—")}</td>
-          <td class="c-color">${escapeHtml(item.color || "—")}</td>`
+              ? `<td class="c-size">${escapeHtml(item.size || "-")}</td>
+          <td class="c-color">${escapeHtml(item.color || "-")}</td>`
               : ""
           }
           <td class="c-qty">${item.quantity}</td>
@@ -512,7 +512,7 @@ export function buildInvoiceHtml(
       <div class="card">
         <div class="card-title">Bill to</div>
         <div class="name">${escapeHtml(customer?.name || "Walk-in customer")}</div>
-        <p>${escapeHtml(customer?.mobile?.trim() || "—")}</p>
+        <p>${escapeHtml(customer?.mobile?.trim() || "-")}</p>
       </div>
       <div class="card">
         <div class="card-title">Payment summary</div>
@@ -893,7 +893,7 @@ export function buildThermalReceiptHtml(
   <div class="kv"><span>Bill No</span><b>${escapeHtml(invoice.invoice_number)}</b></div>
   <div class="kv"><span>Date</span><b>${formatDate(invoice.invoice_date)}</b></div>
   <div class="kv"><span>Customer</span><b>${escapeHtml(customer?.name || "Walk-in")}</b></div>
-  <div class="kv"><span>Mobile</span><b>${escapeHtml(customer?.mobile?.trim() || "—")}</b></div>
+  <div class="kv"><span>Mobile</span><b>${escapeHtml(customer?.mobile?.trim() || "-")}</b></div>
   <div class="center"><span class="badge">${escapeHtml(statusLabel)}</span></div>
 
   ${

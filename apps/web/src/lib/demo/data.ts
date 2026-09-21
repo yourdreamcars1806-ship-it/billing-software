@@ -18,17 +18,20 @@ export const DEMO_COOKIE = "billing_demo_session";
 /** Locked business slug after login — no switching allowed */
 export const DEMO_BUSINESS_COOKIE = "billing_locked_business";
 
-/** Default login per business (clothing + cars separate accounts) */
+/** Shared staff login email for both businesses (one Supabase auth user). */
+export const SHARED_LOGIN_EMAIL = "yourdreamcars1806@gmail.com";
+
+/** Default login per business — same email; password is one account password. */
 export const BUSINESS_LOGINS: Record<
   string,
   { email: string; password: string }
 > = {
   "drape-and-dream": {
-    email: "drapedream@gmail.com",
+    email: SHARED_LOGIN_EMAIL,
     password: "Gafru@786",
   },
   "your-dream-cars": {
-    email: "yourdreamcars1806@gmail.com",
+    email: SHARED_LOGIN_EMAIL,
     password: "Gafru@786",
   },
 };
@@ -55,7 +58,7 @@ export const DEMO_BUSINESSES: Business[] = [
     logo_url: "/images/drape-and-dream-logo.png",
     address: "NIBM Clover Hills Plaza, Office No. 79, Pune",
     phone: "+91 98765 00001",
-    email: "drapedream@gmail.com",
+    email: "yourdreamcars1806@gmail.com",
     gstin: "27AAAAA0000A1Z5",
     pan: "AAAAA0000A",
     is_active: true,

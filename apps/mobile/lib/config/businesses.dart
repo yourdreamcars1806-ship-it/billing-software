@@ -17,7 +17,7 @@ class BusinessConfig {
       logoUrl: 'assets/images/drape-and-dream-logo.png',
       address: 'NIBM Clover Hills Plaza, Office No. 79, Pune',
       phone: '+91 98765 00001',
-      email: 'drapedream@gmail.com',
+      email: 'yourdreamcars1806@gmail.com',
       gstin: '27AAAAA0000A1Z5',
       pan: 'AAAAA0000A',
       isActive: true,
@@ -38,9 +38,10 @@ class BusinessConfig {
     ),
   ];
 
+  /// Same email for both businesses (one Supabase auth account).
   static const logins = <String, ({String email, String password})>{
     'drape-and-dream': (
-      email: 'drapedream@gmail.com',
+      email: 'yourdreamcars1806@gmail.com',
       password: 'Gafru@786',
     ),
     'your-dream-cars': (

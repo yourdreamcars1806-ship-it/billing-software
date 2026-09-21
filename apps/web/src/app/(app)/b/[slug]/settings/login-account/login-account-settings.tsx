@@ -23,11 +23,7 @@ export function LoginAccountSettings({ business }: { business: Business }) {
   useEffect(() => {
     async function load() {
       if (DEMO_MODE) {
-        setLoginEmail(
-          business.slug === "your-dream-cars"
-            ? "yourdreamcars1806@gmail.com"
-            : "drapedream@gmail.com",
-        );
+        setLoginEmail("yourdreamcars1806@gmail.com");
         return;
       }
       const supabase = createClient();

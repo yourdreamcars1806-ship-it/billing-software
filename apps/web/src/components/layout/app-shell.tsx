@@ -88,11 +88,7 @@ export function AppShell({
         activeBusiness?.slug ||
         pathname.split("/")[2] ||
         "drape-and-dream";
-      setSignedInEmail(
-        slug === "your-dream-cars"
-          ? "yourdreamcars1806@gmail.com"
-          : "drapedream@gmail.com",
-      );
+      setSignedInEmail("yourdreamcars1806@gmail.com");
       return;
     }
     const supabase = createClient();

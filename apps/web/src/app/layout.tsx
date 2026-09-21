@@ -9,8 +9,15 @@ const sans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Billing Software — Drape & Dream / Your Dream Cars",
+  title: {
+    default: "Billing Software - Drape & Dream / Your Dream Cars",
+    template: "%s - Billing Software",
+  },
   description: "Professional multi-business billing management.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({

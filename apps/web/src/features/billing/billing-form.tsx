@@ -270,7 +270,7 @@ export function BillingForm({ business }: { business: Business }) {
       else if (result.whatsapp?.error)
         waNote = ` · WhatsApp failed: ${result.whatsapp.error}`;
       else if (result.whatsapp?.skipped === "no customer mobile")
-        waNote = " · WhatsApp skipped (no mobile) — print from Invoices";
+        waNote = " · WhatsApp skipped (no mobile) - print from Invoices";
       else if (result.whatsapp?.skipped)
         waNote = ` · WhatsApp skipped (${result.whatsapp.skipped})`;
 
@@ -343,7 +343,7 @@ export function BillingForm({ business }: { business: Business }) {
                 autoComplete="tel"
               />
               <p className="mt-1 text-[11px] text-slate-400">
-                Number ho to WhatsApp auto; nahi ho to bill phir bhi banega — print kar sakte ho
+                Number ho to WhatsApp auto; nahi ho to bill phir bhi banega - print kar sakte ho
               </p>
             </label>
           </div>
@@ -388,8 +388,8 @@ export function BillingForm({ business }: { business: Business }) {
                       {lastScanned.title}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      Size {lastScanned.size || "—"} · Color{" "}
-                      {lastScanned.color || "—"} ·{" "}
+                      Size {lastScanned.size || "-"} · Color{" "}
+                      {lastScanned.color || "-"} ·{" "}
                       <span className="font-mono">{lastScanned.barcode}</span>
                     </p>
                   </div>
@@ -509,12 +509,12 @@ export function BillingForm({ business }: { business: Business }) {
                         <>
                           <td className="p-1.5">
                             <span className="inline-flex min-w-[52px] items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm font-semibold text-slate-800">
-                              {line.size || "—"}
+                              {line.size || "-"}
                             </span>
                           </td>
                           <td className="p-1.5">
                             <span className="inline-flex min-w-[64px] items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm font-semibold text-slate-800">
-                              {line.color || "—"}
+                              {line.color || "-"}
                             </span>
                           </td>
                         </>

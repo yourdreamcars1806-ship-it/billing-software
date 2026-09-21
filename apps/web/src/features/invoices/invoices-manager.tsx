@@ -690,10 +690,10 @@ export function InvoicesManager({ business }: { business: Business }) {
                         {!isCar ? (
                           <>
                             <td className="px-2 py-2 font-semibold text-slate-800">
-                              {item.size || "—"}
+                              {item.size || "-"}
                             </td>
                             <td className="px-2 py-2 font-semibold text-slate-800">
-                              {item.color || "—"}
+                              {item.color || "-"}
                             </td>
                             <td className="px-2 py-2 text-right tabular-nums font-semibold text-brand-ink">
                               {formatMoney(item.unit_price)}

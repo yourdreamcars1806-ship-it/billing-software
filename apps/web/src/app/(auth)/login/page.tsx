@@ -8,12 +8,17 @@ export default function LoginPage() {
       <header className="border-b border-slate-200/90 bg-white">
         <div className="mx-auto flex h-14 max-w-5xl items-center px-4 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-900 text-[11px] font-bold text-white">
-              BA
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/billing-app-icon.png"
+              alt="Billing Software"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-md object-cover"
+            />
             <div className="leading-tight">
               <p className="text-sm font-semibold text-slate-900">
-                Billing Atelier
+                Billing Software
               </p>
               <p className="text-[11px] text-slate-500">Secure staff login</p>
             </div>

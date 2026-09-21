@@ -13,7 +13,7 @@ VALUES
     'Clothing Billing',
     'NIBM Clover Hills Plaza, Office No. 79, Pune',
     '+91 98765 00001',
-    'drapedream@gmail.com',
+    'yourdreamcars1806@gmail.com',
     '27AAAAA0000A1Z5',
     'AAAAA0000A',
     '/images/drape-and-dream-logo.png'
