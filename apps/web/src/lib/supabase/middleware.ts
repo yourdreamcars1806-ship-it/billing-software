@@ -16,6 +16,7 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute =
     path.startsWith("/login") ||
     path.startsWith("/forgot-password") ||
+    path.startsWith("/update-password") ||
     path.startsWith("/auth");
 
   // ---------- Demo mode (no database) ----------

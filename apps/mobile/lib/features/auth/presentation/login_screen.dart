@@ -49,6 +49,73 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (mounted) setState(() => _rememberSession = remember);
   }
 
+  Future<void> _showForgotPassword() async {
+    final emailController = TextEditingController(
+      text: _emailController.text.trim(),
+    );
+    final brand = AppColors.brand(_selectedBusiness.businessType);
+
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Forgot password'),
+          content: TextField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              hintText: 'you@business.com',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: brand),
+              onPressed: () {
+                final value = emailController.text.trim();
+                if (value.isEmpty || !value.contains('@')) return;
+                Navigator.pop(ctx, value);
+              },
+              child: const Text('Send link'),
+            ),
+          ],
+        );
+      },
+    );
+
+    emailController.dispose();
+    if (email == null || !mounted) return;
+
+    setState(() {
+      _busy = true;
+      _busyMessage = 'Sending reset link…';
+    });
+
+    try {
+      await ref.read(loginControllerProvider.notifier).resetPassword(email);
+      final state = ref.read(loginControllerProvider);
+      if (!mounted) return;
+      if (state.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(state.error.toString())),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Check your email for the reset link'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -371,9 +438,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                   );
                                                 },
                                         ),
-                                        const Text(
-                                          'Remember session',
-                                          style: TextStyle(fontSize: 13),
+                                        const Expanded(
+                                          child: Text(
+                                            'Remember session',
+                                            style: TextStyle(fontSize: 13),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: isLoading
+                                              ? null
+                                              : _showForgotPassword,
+                                          child: Text(
+                                            'Forgot password?',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: brand,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Shirt, Car } from "lucide-react";
 import { clearClientSessionCookies } from "@/lib/auth/session-cookies";
@@ -259,7 +260,7 @@ export function LoginForm({ compact = false }: { compact?: boolean }) {
         </button>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
           <input
             type="checkbox"
@@ -269,6 +270,12 @@ export function LoginForm({ compact = false }: { compact?: boolean }) {
           />
           Remember session
         </label>
+        <Link
+          href={`/forgot-password?email=${encodeURIComponent(email.trim())}`}
+          className="shrink-0 text-xs font-semibold text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline"
+        >
+          Forgot password?
+        </Link>
       </div>
 
       {error && (
