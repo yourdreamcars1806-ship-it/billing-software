@@ -1,14 +1,12 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
-/**
- * Vercel Root Directory = apps/web, but the npm workspace lockfile lives at
- * the monorepo root. Without an explicit turbopack.root, Next can pass
- * undefined into path.* during "Applying modifyConfig from Vercel".
- */
-const monorepoRoot = path.resolve(process.cwd(), "../..");
+/** Monorepo root (npm workspaces + package-lock.json). */
+const monorepoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
+  // Required for correct file tracing / lockfile detection on Vercel monorepos
+  outputFileTracingRoot: monorepoRoot,
   turbopack: {
     root: monorepoRoot,
   },
