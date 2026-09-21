@@ -3,14 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "description": "Multi-business billing management — Drape & Dream + Your Dream Cars",
-  "workspaces": [
-    "apps/web",
-    "packages/*"
-  ],
   "scripts": {
-    "dev:web": "npm run dev --workspace=apps/web",
-    "build:web": "npm run build --workspace=apps/web",
-    "lint:web": "npm run lint --workspace=apps/web",
+    "dev:web": "npm run dev --prefix apps/web",
+    "build:web": "npm run build --prefix apps/web",
+    "lint:web": "npm run lint --prefix apps/web",
     "db:reset": "supabase db reset",
     "db:start": "supabase start",
     "functions:serve": "supabase functions serve"

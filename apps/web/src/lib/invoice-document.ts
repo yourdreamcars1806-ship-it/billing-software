@@ -1,3 +1,5 @@
+"use client";
+
 import type { Business, Invoice } from "@/types";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { paymentStatusLabel } from "@/lib/payment-status";

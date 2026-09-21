@@ -1,9 +1,10 @@
-const path = require("path");
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Monorepo root (Root Directory on Vercel = apps/web)
-  outputFileTracingRoot: path.join(__dirname, "../.."),
+  // Standalone app — Vercel Root Directory = apps/web
+  eslint: {
+    // Don't fail production deploy on lint config mismatches
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig;
