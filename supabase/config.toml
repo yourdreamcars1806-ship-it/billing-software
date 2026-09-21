@@ -1,0 +1,38 @@
+# A Docker Compose project name for local Supabase
+project_id = "billing-software"
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**", "billingmobile://login-callback"]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+[functions]
+verify_jwt = true
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed/seed.sql"]

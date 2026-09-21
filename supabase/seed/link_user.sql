@@ -1,0 +1,2 @@
+-- Use setup_logins.sql instead (separate login per business).
+-- See: supabase/seed/setup_logins.sql

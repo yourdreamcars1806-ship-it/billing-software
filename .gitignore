@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Env
+.env
+.env.local
+.env.*.local
+**/GoogleService-Info.plist
+**/google-services.json
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Next
+apps/web/.next/
+apps/web/out/
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# Misc
+*.log
+coverage/

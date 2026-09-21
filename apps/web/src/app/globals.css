@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  /* Drape & Dream logo gold (sampled) */
+  --brand: #a87000;
+  --brand-soft: #fbf7eb;
+  --brand-border: #e5c76b;
+  --brand-solid: #c89018;
+  --brand-ink: #8b6914;
+  --brand-muted: #d8a028;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  /* Light billing sidebar */
+  --sidebar: #ffffff;
+  --sidebar-text: #475569;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-active-bg: #fbf7eb;
+  --sidebar-active-text: #8b6914;
+  --sidebar-cta: #c89018;
+  --sidebar-cta-hover: #a87000;
+}
+
+[data-theme="clothing"] {
+  --brand: #a87000;
+  --brand-soft: #fbf7eb;
+  --brand-border: #e5c76b;
+  --brand-solid: #c89018;
+  --brand-ink: #8b6914;
+  --brand-muted: #d8a028;
+  --sidebar: #ffffff;
+  --sidebar-hover: #f8f5ec;
+  --sidebar-active-bg: #fbf7eb;
+  --sidebar-active-text: #8b6914;
+  --sidebar-cta: #c89018;
+  --sidebar-cta-hover: #a87000;
+}
+
+[data-theme="car"] {
+  --brand: #1d4ed8;
+  --brand-soft: #eff6ff;
+  --brand-border: #93c5fd;
+  --brand-solid: #2563eb;
+  --brand-ink: #1e40af;
+  --brand-muted: #60a5fa;
+  --sidebar: #ffffff;
+  --sidebar-hover: #eff6ff;
+  --sidebar-active-bg: #eff6ff;
+  --sidebar-active-text: #1e40af;
+  --sidebar-cta: #2563eb;
+  --sidebar-cta-hover: #1d4ed8;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --color-brand: var(--brand-solid);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-border: var(--brand-border);
+  --color-brand-dark: var(--brand);
+  --color-brand-muted: var(--brand-muted);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+.app-shell {
+  background: var(--bg);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.sidebar {
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  color: var(--sidebar-text);
+  overflow: hidden;
+}
+
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+
+.sidebar-section-label {
+  margin-bottom: 0.35rem;
+  padding: 0 0.6rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.sidebar-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background: var(--sidebar-cta);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.sidebar-cta:hover {
+  background: var(--sidebar-cta-hover);
+}
+
+.sidebar-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #475569;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.sidebar-nav-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.sidebar-nav-item:hover {
+  background: var(--sidebar-hover);
+  color: #0f172a;
+}
+
+.sidebar-nav-item[data-active="true"] {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  font-weight: 600;
+}
+
+.sidebar-nav-item[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--brand-solid);
+}
+
+.sidebar-nav-item[data-active="true"] .sidebar-nav-icon {
+  opacity: 1;
+  color: var(--brand-solid);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.btn-brand {
+  background: var(--brand-solid);
+  color: white;
+}
+
+.btn-brand:hover {
+  filter: brightness(0.92);
+}
+
+/* Focus ring for brand inputs */
+.focus-brand:focus {
+  border-color: var(--brand-solid);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-solid) 18%, transparent);
+}
