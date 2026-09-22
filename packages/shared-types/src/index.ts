@@ -77,6 +77,7 @@ export interface ProductVariant {
   fabric: string | null;
   selling_price: number;
   tax_rate: number | null;
+  offer_percent?: number;
   barcode: string | null;
   barcode_format: string;
   image_url: string | null;

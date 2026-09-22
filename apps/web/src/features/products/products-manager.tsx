@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, Plus, ScanBarcode, Trash2, X, Printer } from "lucide-react";
+import {
+  Download,
+  Pencil,
+  Plus,
+  ScanBarcode,
+  Trash2,
+  X,
+  Printer,
+} from "lucide-react";
 import { BarcodeDisplay } from "@/components/barcode/barcode-display";
 import { Button } from "@/components/ui/button";
 import { LoadingOverlay } from "@/components/ui/spinner";
@@ -11,6 +19,7 @@ import {
   deleteDemoClothingProduct,
   deleteDemoClothingProducts,
   getDemoClothingProducts,
+  updateDemoClothingProduct,
 } from "@/lib/demo/data";
 import {
   downloadBarcodePng,
@@ -30,11 +39,13 @@ const emptyForm = {
   fabric: "",
   selling_price: "",
   tax_rate: "12",
+  offer_percent: "0",
+  barcode: "",
 };
 
 type SidePanel =
   | { mode: "closed" }
-  | { mode: "form" }
+  | { mode: "form"; editItem?: ClothingProductItem }
   | { mode: "barcode"; item: ClothingProductItem };
 
 const fieldClass =
@@ -88,7 +99,7 @@ export function ProductsManager({ business }: { business: Business }) {
     const { data, error: qError } = await supabase
       .from("product_variants")
       .select(
-        "id, business_id, size, color, fabric, selling_price, tax_rate, barcode, barcode_format, is_active, products(name, brand, category, sub_category)",
+        "id, business_id, product_id, size, color, fabric, selling_price, tax_rate, offer_percent, barcode, barcode_format, is_active, products(name, brand, category, sub_category)",
       )
       .eq("business_id", business.id)
       .eq("is_active", true)
@@ -104,6 +115,7 @@ export function ProductsManager({ business }: { business: Business }) {
           return {
             id: row.id,
             business_id: row.business_id,
+            product_id: row.product_id,
             name: p?.name || "Product",
             brand: p?.brand ?? null,
             category: p?.category ?? null,
@@ -113,6 +125,7 @@ export function ProductsManager({ business }: { business: Business }) {
             fabric: row.fabric,
             selling_price: Number(row.selling_price),
             tax_rate: Number(row.tax_rate || 0),
+            offer_percent: Number(row.offer_percent || 0),
             barcode: row.barcode || "",
             barcode_format: row.barcode_format || "CODE128",
             is_active: row.is_active !== false,
@@ -145,7 +158,27 @@ export function ProductsManager({ business }: { business: Business }) {
   function openForm() {
     setError(null);
     setSuccess(null);
+    setForm(emptyForm);
     setPanel({ mode: "form" });
+  }
+
+  function openEdit(item: ClothingProductItem) {
+    setError(null);
+    setSuccess(null);
+    setForm({
+      name: item.name,
+      brand: item.brand || "",
+      category: item.category || "",
+      sub_category: item.sub_category || "",
+      size: item.size,
+      color: item.color,
+      fabric: item.fabric || "",
+      selling_price: String(item.selling_price),
+      tax_rate: String(item.tax_rate),
+      offer_percent: String(item.offer_percent ?? 0),
+      barcode: item.barcode || "",
+    });
+    setPanel({ mode: "form", editItem: item });
   }
 
   function openBarcode(item: ClothingProductItem) {
@@ -342,15 +375,61 @@ export function ProductsManager({ business }: { business: Business }) {
     const color = form.color.trim();
     const price = Number(form.selling_price);
     const tax = Number(form.tax_rate);
+    const offer = Number(form.offer_percent);
+    const barcodeTrim = form.barcode.trim();
+    const editItem = panel.mode === "form" ? panel.editItem : undefined;
 
     if (!name || !size || !color || !(price > 0)) {
       setError("Name, size, color, and price are required");
       return;
     }
 
+    if (Number.isNaN(offer) || offer < 0 || offer > 100) {
+      setError("Offer % must be between 0 and 100");
+      return;
+    }
+
+    if (editItem && !barcodeTrim) {
+      setError("Barcode is required when editing");
+      return;
+    }
+
     setSaving(true);
 
+    const productFields = {
+      name,
+      brand: form.brand.trim() || null,
+      category: form.category.trim() || null,
+      sub_category: form.sub_category.trim() || null,
+    };
+
     if (DEMO_MODE) {
+      if (editItem) {
+        const item = updateDemoClothingProduct(business.id, editItem.id, {
+          ...productFields,
+          brand: form.brand,
+          category: form.category,
+          sub_category: form.sub_category,
+          size,
+          color,
+          fabric: form.fabric,
+          selling_price: price,
+          tax_rate: tax,
+          offer_percent: offer,
+          barcode: barcodeTrim,
+        });
+        setSaving(false);
+        if (!item) {
+          setError("Failed to update product");
+          return;
+        }
+        setSuccess(`Product updated · ${item.barcode}`);
+        setForm(emptyForm);
+        await load();
+        setPanel({ mode: "barcode", item });
+        return;
+      }
+
       const item = addDemoClothingProduct(business.id, {
         name,
         brand: form.brand,
@@ -361,6 +440,8 @@ export function ProductsManager({ business }: { business: Business }) {
         fabric: form.fabric,
         selling_price: price,
         tax_rate: tax,
+        offer_percent: offer,
+        ...(barcodeTrim ? { barcode: barcodeTrim } : {}),
       });
       setSuccess(`Barcode generated: ${item.barcode}`);
       setForm(emptyForm);
@@ -371,14 +452,88 @@ export function ProductsManager({ business }: { business: Business }) {
     }
 
     const supabase = createClient();
+
+    if (editItem) {
+      let productId = editItem.product_id;
+      if (!productId) {
+        const { data: existing } = await supabase
+          .from("product_variants")
+          .select("product_id")
+          .eq("id", editItem.id)
+          .eq("business_id", business.id)
+          .single();
+        productId = existing?.product_id;
+      }
+
+      if (productId) {
+        const { error: pErr } = await supabase
+          .from("products")
+          .update(productFields)
+          .eq("id", productId)
+          .eq("business_id", business.id);
+        if (pErr) {
+          setSaving(false);
+          setError(pErr.message || "Failed to update product");
+          return;
+        }
+      }
+
+      const { data: variant, error: vErr } = await supabase
+        .from("product_variants")
+        .update({
+          size,
+          color,
+          fabric: form.fabric.trim() || null,
+          selling_price: price,
+          tax_rate: tax,
+          offer_percent: offer,
+          barcode: barcodeTrim,
+        })
+        .eq("id", editItem.id)
+        .eq("business_id", business.id)
+        .select(
+          "id, business_id, product_id, size, color, fabric, selling_price, tax_rate, offer_percent, barcode, barcode_format, is_active",
+        )
+        .single();
+
+      setSaving(false);
+
+      if (vErr || !variant) {
+        setError(vErr?.message || "Failed to update variant");
+        return;
+      }
+
+      const item: ClothingProductItem = {
+        id: variant.id,
+        business_id: variant.business_id,
+        product_id: variant.product_id,
+        name,
+        brand: productFields.brand,
+        category: productFields.category,
+        sub_category: productFields.sub_category,
+        size: variant.size || size,
+        color: variant.color || color,
+        fabric: variant.fabric,
+        selling_price: Number(variant.selling_price),
+        tax_rate: Number(variant.tax_rate || tax),
+        offer_percent: Number(variant.offer_percent || offer),
+        barcode: variant.barcode || barcodeTrim,
+        barcode_format: variant.barcode_format || "CODE128",
+        is_active: true,
+      };
+
+      setSuccess(`Product updated · ${item.barcode}`);
+      setForm(emptyForm);
+      await load();
+      setPanel({ mode: "barcode", item });
+      return;
+    }
+
     const { data: product, error: pErr } = await supabase
       .from("products")
       .insert({
         business_id: business.id,
-        name,
-        brand: form.brand.trim() || null,
-        category: form.category.trim() || null,
-        sub_category: form.sub_category.trim() || null,
+        ...productFields,
         is_active: true,
       })
       .select("id")
@@ -400,10 +555,12 @@ export function ProductsManager({ business }: { business: Business }) {
         fabric: form.fabric.trim() || null,
         selling_price: price,
         tax_rate: tax,
+        offer_percent: offer,
         is_active: true,
+        ...(barcodeTrim ? { barcode: barcodeTrim } : {}),
       })
       .select(
-        "id, business_id, size, color, fabric, selling_price, tax_rate, barcode, barcode_format, is_active",
+        "id, business_id, product_id, size, color, fabric, selling_price, tax_rate, offer_percent, barcode, barcode_format, is_active",
       )
       .single();
 
@@ -417,15 +574,17 @@ export function ProductsManager({ business }: { business: Business }) {
     const item: ClothingProductItem = {
       id: variant.id,
       business_id: variant.business_id,
+      product_id: variant.product_id,
       name,
-      brand: form.brand.trim() || null,
-      category: form.category.trim() || null,
-      sub_category: form.sub_category.trim() || null,
+      brand: productFields.brand,
+      category: productFields.category,
+      sub_category: productFields.sub_category,
       size: variant.size || size,
       color: variant.color || color,
       fabric: variant.fabric,
       selling_price: Number(variant.selling_price),
       tax_rate: Number(variant.tax_rate || tax),
+      offer_percent: Number(variant.offer_percent || offer),
       barcode: variant.barcode || "",
       barcode_format: variant.barcode_format || "CODE128",
       is_active: true,
@@ -568,6 +727,9 @@ export function ProductsManager({ business }: { business: Business }) {
                   Price
                 </th>
                 <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Offer
+                </th>
+                <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Barcode
                 </th>
                 <th className="whitespace-nowrap px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -617,6 +779,9 @@ export function ProductsManager({ business }: { business: Business }) {
                     <td className="px-3 py-2.5 tabular-nums text-slate-900">
                       {formatMoney(item.selling_price)}
                     </td>
+                    <td className="px-3 py-2.5 tabular-nums text-slate-700">
+                      {item.offer_percent > 0 ? `${item.offer_percent}%` : "-"}
+                    </td>
                     <td className="px-3 py-2.5">
                       <button
                         type="button"
@@ -628,6 +793,15 @@ export function ProductsManager({ business }: { business: Business }) {
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       <div className="inline-flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(item)}
+                          className="inline-flex items-center gap-1.5 border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                          title={`Edit ${item.name}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </button>
                         <button
                           type="button"
                           onClick={() => downloadOne(item)}
@@ -668,16 +842,24 @@ export function ProductsManager({ business }: { business: Business }) {
             <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-ink">
-                  {panel.mode === "form" ? "Generate" : "Barcode detail"}
+                  {panel.mode === "form"
+                    ? panel.editItem
+                      ? "Edit"
+                      : "Generate"
+                    : "Barcode detail"}
                 </p>
                 <h2 className="mt-1 text-lg font-semibold text-slate-900">
                   {panel.mode === "form"
-                    ? "New clothing barcode"
+                    ? panel.editItem
+                      ? "Edit clothing product"
+                      : "New clothing barcode"
                     : panel.item.barcode}
                 </h2>
                 {panel.mode === "form" && (
                   <p className="mt-1 text-sm text-slate-500">
-                    Fill details - Code 128 barcode auto-creates on save.
+                    {panel.editItem
+                      ? "Update details and save changes."
+                      : "Fill details - Code 128 barcode auto-creates on save."}
                   </p>
                 )}
               </div>
@@ -820,6 +1002,48 @@ export function ProductsManager({ business }: { business: Business }) {
                         />
                       </Field>
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field
+                        label="Offer %"
+                        hint="Offer % auto-cuts price when barcode scanned on Billing"
+                      >
+                        <input
+                          className={fieldClass}
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          value={form.offer_percent}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              offer_percent: e.target.value,
+                            }))
+                          }
+                          placeholder="0"
+                        />
+                      </Field>
+                      <Field
+                        label="Barcode"
+                        hint={
+                          panel.editItem
+                            ? "Required — editable"
+                            : "Optional — auto-generated if empty"
+                        }
+                      >
+                        <input
+                          className={fieldClass}
+                          value={form.barcode}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, barcode: e.target.value }))
+                          }
+                          placeholder={
+                            panel.editItem ? "Barcode" : "Leave blank to auto"
+                          }
+                          required={Boolean(panel.editItem)}
+                        />
+                      </Field>
+                    </div>
                     <p className="rounded-sm bg-brand-soft px-3 py-2 text-xs text-brand-dark">
                       Barcode format:{" "}
                       <span className="font-mono font-semibold">
@@ -836,7 +1060,7 @@ export function ProductsManager({ business }: { business: Business }) {
                       size="lg"
                       loading={saving}
                     >
-                      Generate barcode
+                      {panel.editItem ? "Save changes" : "Generate barcode"}
                     </Button>
                   </div>
                 </form>
@@ -872,6 +1096,14 @@ export function ProductsManager({ business }: { business: Business }) {
                       </dd>
                     </div>
                     <div>
+                      <dt className="text-xs text-slate-500">Offer</dt>
+                      <dd className="tabular-nums text-slate-800">
+                        {panel.item.offer_percent > 0
+                          ? `${panel.item.offer_percent}%`
+                          : "-"}
+                      </dd>
+                    </div>
+                    <div>
                       <dt className="text-xs text-slate-500">Tax</dt>
                       <dd className="text-slate-800">{panel.item.tax_rate}%</dd>
                     </div>
@@ -901,6 +1133,16 @@ export function ProductsManager({ business }: { business: Business }) {
                     >
                       <Download className="h-4 w-4" />
                       Download barcode PNG
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                      onClick={() => openEdit(panel.item)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Edit product
                     </Button>
                     <Button
                       type="button"

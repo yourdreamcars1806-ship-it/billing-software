@@ -274,6 +274,7 @@ const SEED_PRODUCTS: Omit<ClothingProductItem, "business_id">[] = [
     fabric: "Cotton",
     selling_price: 1499,
     tax_rate: 12,
+    offer_percent: 10,
     barcode: "DD2603000001",
     barcode_format: "CODE128",
     is_active: true,
@@ -289,6 +290,7 @@ const SEED_PRODUCTS: Omit<ClothingProductItem, "business_id">[] = [
     fabric: "Cotton",
     selling_price: 1499,
     tax_rate: 12,
+    offer_percent: 10,
     barcode: "DD2603000002",
     barcode_format: "CODE128",
     is_active: true,
@@ -304,6 +306,7 @@ const SEED_PRODUCTS: Omit<ClothingProductItem, "business_id">[] = [
     fabric: "Cotton",
     selling_price: 1499,
     tax_rate: 12,
+    offer_percent: 10,
     barcode: "DD2603000003",
     barcode_format: "CODE128",
     is_active: true,
@@ -319,6 +322,7 @@ const SEED_PRODUCTS: Omit<ClothingProductItem, "business_id">[] = [
     fabric: "Cotton blend",
     selling_price: 2199,
     tax_rate: 12,
+    offer_percent: 10,
     barcode: "DD2603000004",
     barcode_format: "CODE128",
     is_active: true,
@@ -334,6 +338,7 @@ const SEED_PRODUCTS: Omit<ClothingProductItem, "business_id">[] = [
     fabric: "Linen",
     selling_price: 1899,
     tax_rate: 5,
+    offer_percent: 15,
     barcode: "DD2603000005",
     barcode_format: "CODE128",
     is_active: true,
@@ -344,7 +349,7 @@ export function getDemoClothingProducts(
   businessId: string,
 ): ClothingProductItem[] {
   if (typeof window === "undefined") {
-    return SEED_PRODUCTS.map((p) => ({ ...p, business_id: businessId }));
+    return SEED_PRODUCTS.map((p) => ({ ...p, business_id: businessId, offer_percent: Number(p.offer_percent || 0) }));
   }
 
   try {
@@ -352,7 +357,7 @@ export function getDemoClothingProducts(
     if (raw) {
       const parsed = JSON.parse(raw) as ClothingProductItem[];
       if (Array.isArray(parsed) && parsed.length) {
-        return parsed.filter((p) => p.business_id === businessId);
+        return parsed.filter((p) => p.business_id === businessId).map((p) => ({ ...p, offer_percent: Number(p.offer_percent || 0) }));
       }
     }
   } catch {
@@ -391,11 +396,13 @@ export function addDemoClothingProduct(
     fabric?: string;
     selling_price: number;
     tax_rate: number;
+    offer_percent?: number;
+    barcode?: string;
   },
 ): ClothingProductItem {
   const existing = getDemoClothingProducts(businessId);
   const seq = nextSequenceFromBarcodes(existing.map((p) => p.barcode));
-  const barcode = generateClothingBarcode(seq);
+  const barcode = input.barcode?.trim() || generateClothingBarcode(seq);
 
   const item: ClothingProductItem = {
     id: `pv-${Date.now()}`,
@@ -409,6 +416,7 @@ export function addDemoClothingProduct(
     fabric: input.fabric?.trim() || null,
     selling_price: input.selling_price,
     tax_rate: input.tax_rate,
+    offer_percent: Number(input.offer_percent || 0),
     barcode,
     barcode_format: "CODE128",
     is_active: true,
@@ -416,6 +424,48 @@ export function addDemoClothingProduct(
 
   saveDemoClothingProducts([item, ...existing]);
   return item;
+}
+
+export function updateDemoClothingProduct(
+  businessId: string,
+  productId: string,
+  input: {
+    name: string;
+    brand?: string;
+    category?: string;
+    sub_category?: string;
+    size: string;
+    color: string;
+    fabric?: string;
+    selling_price: number;
+    tax_rate: number;
+    offer_percent?: number;
+    barcode: string;
+  },
+): ClothingProductItem | null {
+  const existing = getDemoClothingProducts(businessId);
+  let updated: ClothingProductItem | null = null;
+  const next = existing.map((p) => {
+    if (p.id !== productId) return p;
+    updated = {
+      ...p,
+      name: input.name.trim(),
+      brand: input.brand?.trim() || null,
+      category: input.category?.trim() || null,
+      sub_category: input.sub_category?.trim() || null,
+      size: input.size.trim(),
+      color: input.color.trim(),
+      fabric: input.fabric?.trim() || null,
+      selling_price: input.selling_price,
+      tax_rate: input.tax_rate,
+      offer_percent: Number(input.offer_percent || 0),
+      barcode: input.barcode.trim(),
+    };
+    return updated;
+  });
+  if (!updated) return null;
+  saveDemoClothingProducts(next);
+  return updated;
 }
 
 export function deleteDemoClothingProduct(

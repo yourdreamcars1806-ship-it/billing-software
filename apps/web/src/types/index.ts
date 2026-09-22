@@ -97,6 +97,7 @@ export interface ProductVariant {
   fabric: string | null;
   selling_price: number;
   tax_rate: number | null;
+  offer_percent?: number;
   barcode: string | null;
   barcode_format?: string;
   sku?: string | null;
@@ -107,6 +108,7 @@ export interface ProductVariant {
 export interface ClothingProductItem {
   id: string;
   business_id: string;
+  product_id?: string;
   name: string;
   brand: string | null;
   category: string | null;
@@ -116,6 +118,7 @@ export interface ClothingProductItem {
   fabric: string | null;
   selling_price: number;
   tax_rate: number;
+  offer_percent: number;
   barcode: string;
   barcode_format: string;
   is_active: boolean;

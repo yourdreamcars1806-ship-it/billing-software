@@ -660,7 +660,7 @@ export function buildThermalReceiptHtml(
               : ""
           }
           <div class="item-row">
-            <span>${item.quantity} x ${money(item.unit_price)}</span>
+            <span>${item.quantity} x ${money(item.unit_price)}${(item.discount_amount || 0) > 0 ? ` - Disc ${money(Number(item.discount_amount || 0))}` : ""}</span>
             <span>${money(amt)}</span>
           </div>
         </div>`;

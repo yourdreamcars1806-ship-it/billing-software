@@ -8,6 +8,7 @@ import { createInvoice } from "@/lib/create-invoice";
 import { Button } from "@/components/ui/button";
 import { LoadingOverlay } from "@/components/ui/spinner";
 import { formatMoney } from "@/lib/utils";
+import { discountFromOffer } from "@/lib/offer";
 import type { Business, PaymentMethod, ProductVariant } from "@/types";
 import { PAYMENT_METHODS, businessFeatures } from "@/types";
 
@@ -18,6 +19,7 @@ interface LineDraft {
   unit_price: number;
   discount_amount: number;
   tax_rate: number;
+  offer_percent?: number;
   product_variant_id?: string;
   barcode?: string;
   size?: string;
@@ -99,7 +101,23 @@ export function BillingForm({ business }: { business: Business }) {
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
     setLines((prev) =>
-      prev.map((l) => (l.key === key ? { ...l, ...patch } : l)),
+      prev.map((l) => {
+        if (l.key !== key) return l;
+        const next = { ...l, ...patch };
+        if (
+          next.offer_percent &&
+          next.offer_percent > 0 &&
+          ("quantity" in patch || "unit_price" in patch) &&
+          !("discount_amount" in patch)
+        ) {
+          next.discount_amount = discountFromOffer(
+            next.quantity,
+            next.unit_price,
+            next.offer_percent,
+          );
+        }
+        return next;
+      }),
     );
   }
 
@@ -120,15 +138,19 @@ export function BillingForm({ business }: { business: Business }) {
           return;
         }
         const title = [product.brand, product.name].filter(Boolean).join(" · ");
+        const offer = Number(product.offer_percent || 0);
+        const price = Number(product.selling_price);
+        const disc = discountFromOffer(1, price, offer);
         setLines((prev) => [
           ...prev.filter((l) => l.description || l.unit_price),
           {
             key: crypto.randomUUID(),
             description: title,
             quantity: 1,
-            unit_price: product.selling_price,
-            discount_amount: 0,
+            unit_price: price,
+            discount_amount: disc,
             tax_rate: product.tax_rate,
+            offer_percent: offer,
             product_variant_id: product.id,
             barcode: product.barcode,
             size: product.size,
@@ -140,10 +162,12 @@ export function BillingForm({ business }: { business: Business }) {
           barcode: product.barcode,
           size: product.size,
           color: product.color,
-          price: Number(product.selling_price),
+          price,
         });
         setSuccess(
-          `Added ${title} · Size ${product.size} · Color ${product.color} · ₹${Number(product.selling_price).toLocaleString("en-IN")}`,
+          offer > 0
+            ? `Added ${title} · ${offer}% off · Disc ₹${disc.toLocaleString("en-IN")}`
+            : `Added ${title} · Size ${product.size} · Color ${product.color} · ₹${price.toLocaleString("en-IN")}`,
         );
         setBarcodeInput("");
         return;
@@ -169,6 +193,8 @@ export function BillingForm({ business }: { business: Business }) {
       const brand = variant.products?.brand;
       const title = [brand, name].filter(Boolean).join(" · ");
       const price = Number(variant.selling_price);
+      const offer = Number(variant.offer_percent || 0);
+      const disc = discountFromOffer(1, price, offer);
       const barcodeValue = (variant.barcode || code).trim();
 
       setLines((prev) => [
@@ -178,8 +204,9 @@ export function BillingForm({ business }: { business: Business }) {
           description: title,
           quantity: 1,
           unit_price: price,
-          discount_amount: 0,
+          discount_amount: disc,
           tax_rate: Number(variant.tax_rate || 0),
+          offer_percent: offer,
           product_variant_id: variant.id,
           barcode: barcodeValue,
           size: variant.size || undefined,
@@ -194,7 +221,9 @@ export function BillingForm({ business }: { business: Business }) {
         price,
       });
       setSuccess(
-        `Added ${title}${variant.size ? ` · Size ${variant.size}` : ""}${variant.color ? ` · Color ${variant.color}` : ""} · ₹${price.toLocaleString("en-IN")}`,
+        offer > 0
+          ? `Added ${title} · ${offer}% off · Disc ₹${disc.toLocaleString("en-IN")}`
+          : `Added ${title}${variant.size ? ` · Size ${variant.size}` : ""}${variant.color ? ` · Color ${variant.color}` : ""} · ₹${price.toLocaleString("en-IN")}`,
       );
       setBarcodeInput("");
     } finally {
