@@ -4,6 +4,7 @@ export type BusinessType = "clothing" | "car";
 export type PaymentMethod =
   | "cash"
   | "upi"
+  | "upi_cash"
   | "card"
   | "bank_transfer"
   | "other";
@@ -171,6 +172,7 @@ export const BUSINESS_SLUGS = {
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "Cash" },
   { value: "upi", label: "UPI" },
+  { value: "upi_cash", label: "UPI + Cash" },
   { value: "card", label: "Card" },
   { value: "bank_transfer", label: "Bank Transfer" },
   { value: "other", label: "Other" },

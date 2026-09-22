@@ -116,7 +116,7 @@ function PaymentsView({
                     {p.invoices?.invoice_number || "-"}
                   </td>
                   <td className="px-3 py-2.5 capitalize text-slate-700">
-                    {p.payment_method.replace("_", " ")}
+                    {p.payment_method.replaceAll("_", " ")}
                   </td>
                   <td className="px-3 py-2.5 text-slate-600">
                     {p.reference_number || "-"}

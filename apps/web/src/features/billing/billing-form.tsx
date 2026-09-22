@@ -317,12 +317,12 @@ export function BillingForm({ business }: { business: Business }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 pb-10 sm:space-y-5 sm:pb-12">
       <LoadingOverlay
         show={saving || scanning}
         label={scanning ? "Looking up barcode…" : "Creating invoice…"}
       />
-      <div className="border-b border-slate-200 pb-4">
+      <div className="border-b border-slate-200 pb-3">
         <h1 className="text-xl font-semibold tracking-tight text-slate-900">
           Create Invoice
         </h1>
@@ -342,8 +342,8 @@ export function BillingForm({ business }: { business: Business }) {
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-        <div className="space-y-5 border border-slate-200 bg-white p-4 sm:p-5">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-5">
+        <div className="min-w-0 space-y-4 border border-slate-200 bg-white p-3 sm:space-y-5 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -623,99 +623,103 @@ export function BillingForm({ business }: { business: Business }) {
           </label>
         </div>
 
-        <aside className="h-fit space-y-4 border border-slate-200 bg-white p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-            Totals
-          </p>
-          <Row label="Subtotal" value={formatMoney(totals.subtotal)} />
-          <Row label="Tax" value={formatMoney(totals.tax)} />
-          <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Invoice discount
-            </span>
-            <input
-              className="mt-1.5 h-10 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
-              type="number"
-              min={0}
-              value={discount}
-              onChange={(e) => setDiscount(Number(e.target.value))}
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Additional charges
-            </span>
-            <input
-              className="mt-1.5 h-10 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
-              type="number"
-              min={0}
-              value={additional}
-              onChange={(e) => setAdditional(Number(e.target.value))}
-            />
-          </label>
-          <div
-            className={
-              isCar
-                ? "border border-blue-200 bg-blue-50 px-3 py-3"
-                : "border border-brand-border bg-brand-soft px-3 py-3"
-            }
-          >
-            <p
+        <aside className="flex flex-col border border-slate-200 bg-white lg:sticky lg:top-2 lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-hidden">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Totals
+            </p>
+            <Row label="Subtotal" value={formatMoney(totals.subtotal)} />
+            <Row label="Tax" value={formatMoney(totals.tax)} />
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Invoice discount
+              </span>
+              <input
+                className="mt-1 h-9 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                type="number"
+                min={0}
+                value={discount}
+                onChange={(e) => setDiscount(Number(e.target.value))}
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Additional charges
+              </span>
+              <input
+                className="mt-1 h-9 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                type="number"
+                min={0}
+                value={additional}
+                onChange={(e) => setAdditional(Number(e.target.value))}
+              />
+            </label>
+            <div
               className={
                 isCar
-                  ? "text-[11px] font-semibold uppercase tracking-wider text-blue-800"
-                  : "text-[11px] font-semibold uppercase tracking-wider text-brand-ink"
+                  ? "border border-blue-200 bg-blue-50 px-3 py-2.5"
+                  : "border border-brand-border bg-brand-soft px-3 py-2.5"
               }
             >
-              Grand total (Sales)
-            </p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
-              {formatMoney(totals.grand)}
-            </p>
+              <p
+                className={
+                  isCar
+                    ? "text-[11px] font-semibold uppercase tracking-wider text-blue-800"
+                    : "text-[11px] font-semibold uppercase tracking-wider text-brand-ink"
+                }
+              >
+                Grand total (Sales)
+              </p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-slate-900 sm:text-2xl">
+                {formatMoney(totals.grand)}
+              </p>
+            </div>
+
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                {isCar ? "Token / payment now" : "Payment received now"}
+              </span>
+              <input
+                className="mt-1 h-9 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                type="number"
+                min={0}
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(Number(e.target.value))}
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                {isCar ? "Token method" : "Payment method"}
+              </span>
+              <select
+                className="mt-1 h-9 w-full border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                value={paymentMethod}
+                onChange={(e) =>
+                  setPaymentMethod(e.target.value as PaymentMethod)
+                }
+              >
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              {isCar ? "Token / payment now" : "Payment received now"}
-            </span>
-            <input
-              className="mt-1.5 h-10 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
-              type="number"
-              min={0}
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(Number(e.target.value))}
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              {isCar ? "Token method" : "Payment method"}
-            </span>
-            <select
-              className="mt-1.5 h-10 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
-              value={paymentMethod}
-              onChange={(e) =>
-                setPaymentMethod(e.target.value as PaymentMethod)
-              }
+          <div className="shrink-0 space-y-2 border-t border-slate-200 bg-white p-3 sm:p-4">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={submit}
+              loading={saving}
             >
-              {PAYMENT_METHODS.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={submit}
-            loading={saving}
-          >
-            Create Invoice
-          </Button>
-          <p className="text-center text-[11px] text-slate-500">
-            Mobile daloge to WhatsApp auto trigger; warna bill create + print normal
-          </p>
+              Create Invoice
+            </Button>
+            <p className="text-center text-[11px] leading-snug text-slate-500">
+              Mobile daloge to WhatsApp auto; warna bill + print normal
+            </p>
+          </div>
         </aside>
       </div>
     </div>
