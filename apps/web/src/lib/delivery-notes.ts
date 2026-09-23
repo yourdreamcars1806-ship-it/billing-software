@@ -254,11 +254,18 @@ export async function deleteDeliveryNote(
   id: string,
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient();
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from("delivery_notes")
     .delete()
     .eq("id", id)
-    .eq("business_id", businessId);
+    .eq("business_id", businessId)
+    .select("id");
   if (error) return { success: false, error: error.message };
+  if (!deleted?.length) {
+    return {
+      success: false,
+      error: "Delivery note was not deleted from database (no access or already removed)",
+    };
+  }
   return { success: true };
 }

@@ -285,7 +285,7 @@ export function ProductsManager({ business }: { business: Business }) {
   async function deleteBarcode(item: ClothingProductItem) {
     if (
       !confirm(
-        `Delete barcode ${item.barcode} (${item.name} · ${item.color})? It will be removed from the list.`,
+        `Permanently delete barcode ${item.barcode} (${item.name} · ${item.color}) from database? This cannot be undone.`,
       )
     ) {
       return;
@@ -312,16 +312,21 @@ export function ProductsManager({ business }: { business: Business }) {
     }
 
     const supabase = createClient();
-    const { error: delError } = await supabase
+    const { data: deleted, error: delError } = await supabase
       .from("product_variants")
-      .update({ is_active: false })
+      .delete()
       .eq("id", item.id)
-      .eq("business_id", business.id);
+      .eq("business_id", business.id)
+      .select("id");
 
     setSaving(false);
 
     if (delError) {
-      setError(delError.message || "Failed to delete barcode");
+      setError(delError.message || "Failed to delete barcode from database");
+      return;
+    }
+    if (!deleted?.length) {
+      setError("Barcode was not deleted (no access or already removed)");
       return;
     }
 
@@ -333,7 +338,7 @@ export function ProductsManager({ business }: { business: Business }) {
     if (panel.mode === "barcode" && panel.item.id === item.id) {
       setPanel({ mode: "closed" });
     }
-    setSuccess(`Barcode deleted · ${item.barcode}`);
+    setSuccess(`Barcode permanently deleted · ${item.barcode}`);
     await load();
   }
 
@@ -345,7 +350,7 @@ export function ProductsManager({ business }: { business: Business }) {
     }
     if (
       !confirm(
-        `Delete ${items.length} barcode${items.length === 1 ? "" : "s"}? They will be removed from the list.`,
+        `Permanently delete ${items.length} barcode${items.length === 1 ? "" : "s"} from database? This cannot be undone.`,
       )
     ) {
       return;
@@ -372,19 +377,24 @@ export function ProductsManager({ business }: { business: Business }) {
     }
 
     const supabase = createClient();
-    const { error: delError } = await supabase
+    const { data: deleted, error: delError } = await supabase
       .from("product_variants")
-      .update({ is_active: false })
+      .delete()
       .eq("business_id", business.id)
       .in(
         "id",
         items.map((i) => i.id),
-      );
+      )
+      .select("id");
 
     setBulkBusy(false);
 
     if (delError) {
-      setError(delError.message || "Failed to delete barcodes");
+      setError(delError.message || "Failed to delete barcodes from database");
+      return;
+    }
+    if (!deleted?.length) {
+      setError("Barcodes were not deleted (no access or already removed)");
       return;
     }
 
@@ -395,7 +405,9 @@ export function ProductsManager({ business }: { business: Business }) {
     ) {
       setPanel({ mode: "closed" });
     }
-    setSuccess(`Deleted ${items.length} barcode${items.length === 1 ? "" : "s"}`);
+    setSuccess(
+      `Permanently deleted ${deleted.length} barcode${deleted.length === 1 ? "" : "s"} from database`,
+    );
     await load();
   }
 

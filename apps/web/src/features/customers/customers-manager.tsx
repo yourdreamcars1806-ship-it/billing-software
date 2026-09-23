@@ -155,17 +155,31 @@ export function CustomersManager({ business }: { business: Business }) {
   }
 
   async function deactivate(c: Customer) {
-    if (!confirm(`Deactivate ${c.name}?`)) return;
+    if (
+      !confirm(
+        `Permanently delete customer ${c.name} from database? This cannot be undone.`,
+      )
+    )
+      return;
     if (DEMO_MODE) {
       setCustomers((prev) => prev.filter((x) => x.id !== c.id));
       return;
     }
     const supabase = createClient();
-    await supabase
+    const { data: deleted, error: delError } = await supabase
       .from("customers")
-      .update({ is_active: false })
+      .delete()
       .eq("id", c.id)
-      .eq("business_id", business.id);
+      .eq("business_id", business.id)
+      .select("id");
+    if (delError) {
+      setError(delError.message || "Failed to delete customer from database");
+      return;
+    }
+    if (!deleted?.length) {
+      setError("Customer was not deleted (no access or already removed)");
+      return;
+    }
     await load();
   }
 
@@ -255,7 +269,7 @@ export function CustomersManager({ business }: { business: Business }) {
                       onClick={() => deactivate(c)}
                       className="text-xs font-semibold text-red-600 hover:underline"
                     >
-                      Deactivate
+                      Delete
                     </button>
                   </td>
                 </tr>

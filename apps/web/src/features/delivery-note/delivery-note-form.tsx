@@ -468,7 +468,13 @@ export function DeliveryNoteForm({ business }: { business: Business }) {
   }
 
   async function onDelete(id: string, no: string) {
-    if (!window.confirm(`Delete delivery note ${no}?`)) return;
+    if (
+      !window.confirm(
+        `Permanently delete delivery note ${no} from database? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
     const result = await deleteDeliveryNote(business.id, id);
     if (!result.success) {
       setError(result.error || "Delete failed");
@@ -479,7 +485,7 @@ export function DeliveryNoteForm({ business }: { business: Business }) {
       setForm(emptyNote("", business.name));
       setPanelOpen(false);
     }
-    setMessage(`Deleted ${no}`);
+    setMessage(`Deleted from database · ${no}`);
     await loadSaved();
   }
 

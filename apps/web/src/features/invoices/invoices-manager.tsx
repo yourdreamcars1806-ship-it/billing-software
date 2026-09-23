@@ -297,7 +297,7 @@ export function InvoicesManager({ business }: { business: Business }) {
   async function deleteInvoice(inv: Invoice) {
     if (
       !confirm(
-        `Delete invoice ${inv.invoice_number}? This cannot be undone from the list.`,
+        `Permanently delete invoice ${inv.invoice_number} from database?\nPayments and line items linked to it will also be removed. This cannot be undone.`,
       )
     ) {
       return;
@@ -322,16 +322,22 @@ export function InvoicesManager({ business }: { business: Business }) {
     }
 
     const supabase = createClient();
-    const { error: delError } = await supabase
+    // Hard delete — CASCADE removes invoice_items + payments in Supabase
+    const { data: deleted, error: delError } = await supabase
       .from("invoices")
-      .update({ status: "cancelled" })
+      .delete()
       .eq("id", inv.id)
-      .eq("business_id", business.id);
+      .eq("business_id", business.id)
+      .select("id");
 
     setBusyId(null);
 
     if (delError) {
-      setError(delError.message || "Failed to delete invoice");
+      setError(delError.message || "Failed to delete invoice from database");
+      return;
+    }
+    if (!deleted?.length) {
+      setError("Invoice was not deleted (no access or already removed)");
       return;
     }
 
@@ -341,7 +347,7 @@ export function InvoicesManager({ business }: { business: Business }) {
     ) {
       setPanel({ type: "closed" });
     }
-    setMessage(`Invoice deleted · ${inv.invoice_number}`);
+    setMessage(`Invoice permanently deleted from database · ${inv.invoice_number}`);
     await load();
   }
 
