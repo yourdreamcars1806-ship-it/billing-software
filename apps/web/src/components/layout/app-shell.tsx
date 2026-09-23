@@ -18,6 +18,7 @@ import {
   ScanBarcode,
   Plus,
   KeyRound,
+  Package,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { clearClientSessionCookies } from "@/lib/auth/session-cookies";
@@ -37,6 +38,12 @@ const NAV_ITEMS = [
     icon: ScanBarcode,
     clothingOnly: true,
   },
+  {
+    href: "stock",
+    label: "Stock",
+    icon: Package,
+    clothingOnly: true,
+  },
   { href: "invoices", label: "Invoices", icon: FileText },
   { href: "payments", label: "Payments", icon: CreditCard },
   { href: "reports", label: "Reports", icon: BarChart3 },
@@ -47,6 +54,7 @@ const PAGE_TITLES: Record<string, string> = {
   dashboard: "Dashboard",
   billing: "Create Invoice",
   products: "Products & Barcode",
+  stock: "Stock by category",
   invoices: "Invoices",
   payments: "Payments",
   reports: "Reports",

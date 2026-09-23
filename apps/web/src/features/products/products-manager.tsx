@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Download,
+  PackageMinus,
+  PackagePlus,
   Pencil,
   Plus,
   ScanBarcode,
@@ -20,14 +22,17 @@ import {
   deleteDemoClothingProducts,
   getDemoClothingProducts,
   updateDemoClothingProduct,
+  updateDemoStock,
 } from "@/lib/demo/data";
 import {
   downloadBarcodePng,
   downloadBulkBarcodePdf,
 } from "@/lib/download-barcode";
+import { adjustVariantStock } from "@/lib/stock";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatMoney } from "@/lib/utils";
 import type { Business, ClothingProductItem } from "@/types";
+import { CLOTHING_CATEGORIES } from "./categories";
 
 const emptyForm = {
   name: "",
@@ -37,11 +42,16 @@ const emptyForm = {
   size: "",
   color: "",
   fabric: "",
+  cost_price: "",
   selling_price: "",
   tax_rate: "12",
   offer_percent: "0",
   barcode: "",
+  stock_qty: "0",
 };
+
+const variantSelectCols =
+  "id, business_id, product_id, size, color, fabric, cost_price, selling_price, tax_rate, offer_percent, barcode, barcode_format, is_active, stock_qty, stock_out_total";
 
 type SidePanel =
   | { mode: "closed" }
@@ -99,7 +109,7 @@ export function ProductsManager({ business }: { business: Business }) {
     const { data, error: qError } = await supabase
       .from("product_variants")
       .select(
-        "id, business_id, product_id, size, color, fabric, selling_price, tax_rate, offer_percent, barcode, barcode_format, is_active, products(name, brand, category, sub_category)",
+        `${variantSelectCols}, products(name, brand, category, sub_category)`,
       )
       .eq("business_id", business.id)
       .eq("is_active", true)
@@ -123,11 +133,14 @@ export function ProductsManager({ business }: { business: Business }) {
             size: row.size || "",
             color: row.color || "",
             fabric: row.fabric,
+            cost_price: Number(row.cost_price || 0),
             selling_price: Number(row.selling_price),
             tax_rate: Number(row.tax_rate || 0),
             offer_percent: Number(row.offer_percent || 0),
             barcode: row.barcode || "",
             barcode_format: row.barcode_format || "CODE128",
+            stock_qty: Number(row.stock_qty || 0),
+            stock_out_total: Number(row.stock_out_total || 0),
             is_active: row.is_active !== false,
           };
         }),
@@ -173,12 +186,80 @@ export function ProductsManager({ business }: { business: Business }) {
       size: item.size,
       color: item.color,
       fabric: item.fabric || "",
+      cost_price: String(item.cost_price ?? 0),
       selling_price: String(item.selling_price),
       tax_rate: String(item.tax_rate),
       offer_percent: String(item.offer_percent ?? 0),
       barcode: item.barcode || "",
+      stock_qty: String(item.stock_qty ?? 0),
     });
     setPanel({ mode: "form", editItem: item });
+  }
+
+  async function handleStockAdjust(
+    item: ClothingProductItem,
+    type: "in" | "out",
+  ) {
+    const label = type === "in" ? "Stock In" : "Stock Out";
+    const raw = window.prompt(`${label} — enter quantity:`, "1");
+    if (raw === null) return;
+    const qty = Number(raw);
+    if (!(qty > 0) || !Number.isFinite(qty)) {
+      setError("Enter a valid quantity greater than 0");
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setSaving(true);
+
+    if (DEMO_MODE) {
+      const updated = updateDemoStock(business.id, item.id, type, qty);
+      setSaving(false);
+      if (!updated) {
+        setError(
+          type === "out"
+            ? `Only ${item.stock_qty ?? 0} in stock`
+            : "Failed to update stock",
+        );
+        return;
+      }
+      setSuccess(`${label} · ${qty} · now ${updated.stock_qty}`);
+      await load();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("clothing-stock-changed"));
+      }
+      if (panel.mode === "barcode" && panel.item.id === item.id) {
+        setPanel({ mode: "barcode", item: updated });
+      }
+      return;
+    }
+
+    const result = await adjustVariantStock({
+      businessId: business.id,
+      variantId: item.id,
+      type,
+      quantity: qty,
+      note: type === "in" ? "Stock in" : "Stock out",
+    });
+    setSaving(false);
+
+    if (!result.success) {
+      setError(result.error || "Failed to update stock");
+      return;
+    }
+
+    setSuccess(`${label} · ${qty} · now ${result.stock_qty}`);
+    await load();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("clothing-stock-changed"));
+    }
+    if (panel.mode === "barcode" && panel.item.id === item.id) {
+      setPanel({
+        mode: "barcode",
+        item: { ...panel.item, stock_qty: result.stock_qty ?? panel.item.stock_qty },
+      });
+    }
   }
 
   function openBarcode(item: ClothingProductItem) {
@@ -373,14 +454,30 @@ export function ProductsManager({ business }: { business: Business }) {
     const name = form.name.trim();
     const size = form.size.trim();
     const color = form.color.trim();
+    const category = form.category.trim();
+    const costPrice = Math.max(0, Number(form.cost_price) || 0);
     const price = Number(form.selling_price);
     const tax = Number(form.tax_rate);
     const offer = Number(form.offer_percent);
+    const stockQty = Math.max(0, Number(form.stock_qty) || 0);
     const barcodeTrim = form.barcode.trim();
     const editItem = panel.mode === "form" ? panel.editItem : undefined;
 
     if (!name || !size || !color || !(price > 0)) {
-      setError("Name, size, color, and price are required");
+      setError("Name, size, color, and sell price are required");
+      return;
+    }
+
+    if (Number.isNaN(costPrice) || costPrice < 0) {
+      setError("Cost price must be 0 or more");
+      return;
+    }
+
+    if (
+      !category ||
+      !(CLOTHING_CATEGORIES as readonly string[]).includes(category)
+    ) {
+      setError("Select a valid category");
       return;
     }
 
@@ -399,7 +496,7 @@ export function ProductsManager({ business }: { business: Business }) {
     const productFields = {
       name,
       brand: form.brand.trim() || null,
-      category: form.category.trim() || null,
+      category,
       sub_category: form.sub_category.trim() || null,
     };
 
@@ -408,11 +505,12 @@ export function ProductsManager({ business }: { business: Business }) {
         const item = updateDemoClothingProduct(business.id, editItem.id, {
           ...productFields,
           brand: form.brand,
-          category: form.category,
+          category,
           sub_category: form.sub_category,
           size,
           color,
           fabric: form.fabric,
+          cost_price: costPrice,
           selling_price: price,
           tax_rate: tax,
           offer_percent: offer,
@@ -433,14 +531,16 @@ export function ProductsManager({ business }: { business: Business }) {
       const item = addDemoClothingProduct(business.id, {
         name,
         brand: form.brand,
-        category: form.category,
+        category,
         sub_category: form.sub_category,
         size,
         color,
         fabric: form.fabric,
+        cost_price: costPrice,
         selling_price: price,
         tax_rate: tax,
         offer_percent: offer,
+        stock_qty: stockQty,
         ...(barcodeTrim ? { barcode: barcodeTrim } : {}),
       });
       setSuccess(`Barcode generated: ${item.barcode}`);
@@ -484,6 +584,7 @@ export function ProductsManager({ business }: { business: Business }) {
           size,
           color,
           fabric: form.fabric.trim() || null,
+          cost_price: costPrice,
           selling_price: price,
           tax_rate: tax,
           offer_percent: offer,
@@ -491,9 +592,7 @@ export function ProductsManager({ business }: { business: Business }) {
         })
         .eq("id", editItem.id)
         .eq("business_id", business.id)
-        .select(
-          "id, business_id, product_id, size, color, fabric, selling_price, tax_rate, offer_percent, barcode, barcode_format, is_active",
-        )
+        .select(variantSelectCols)
         .single();
 
       setSaving(false);
@@ -514,11 +613,13 @@ export function ProductsManager({ business }: { business: Business }) {
         size: variant.size || size,
         color: variant.color || color,
         fabric: variant.fabric,
+        cost_price: Number(variant.cost_price || costPrice),
         selling_price: Number(variant.selling_price),
         tax_rate: Number(variant.tax_rate || tax),
         offer_percent: Number(variant.offer_percent || offer),
         barcode: variant.barcode || barcodeTrim,
         barcode_format: variant.barcode_format || "CODE128",
+        stock_qty: Number(variant.stock_qty || 0),
         is_active: true,
       };
 
@@ -553,15 +654,17 @@ export function ProductsManager({ business }: { business: Business }) {
         size,
         color,
         fabric: form.fabric.trim() || null,
+        cost_price: costPrice,
         selling_price: price,
         tax_rate: tax,
         offer_percent: offer,
+        stock_qty: stockQty,
+        stock_in_total: stockQty > 0 ? stockQty : 0,
+        stock_out_total: 0,
         is_active: true,
         ...(barcodeTrim ? { barcode: barcodeTrim } : {}),
       })
-      .select(
-        "id, business_id, product_id, size, color, fabric, selling_price, tax_rate, offer_percent, barcode, barcode_format, is_active",
-      )
+      .select(variantSelectCols)
       .single();
 
     setSaving(false);
@@ -569,6 +672,20 @@ export function ProductsManager({ business }: { business: Business }) {
     if (vErr || !variant) {
       setError(vErr?.message || "Failed to create variant");
       return;
+    }
+
+    if (stockQty > 0) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      await supabase.from("stock_movements").insert({
+        business_id: business.id,
+        product_variant_id: variant.id,
+        movement_type: "in",
+        quantity: stockQty,
+        note: "Opening stock",
+        created_by: user?.id || null,
+      });
     }
 
     const item: ClothingProductItem = {
@@ -582,17 +699,22 @@ export function ProductsManager({ business }: { business: Business }) {
       size: variant.size || size,
       color: variant.color || color,
       fabric: variant.fabric,
+      cost_price: Number(variant.cost_price || costPrice),
       selling_price: Number(variant.selling_price),
       tax_rate: Number(variant.tax_rate || tax),
       offer_percent: Number(variant.offer_percent || offer),
       barcode: variant.barcode || "",
       barcode_format: variant.barcode_format || "CODE128",
+      stock_qty: Number(variant.stock_qty || stockQty),
       is_active: true,
     };
 
     setSuccess(`Barcode generated: ${item.barcode}`);
     setForm(emptyForm);
     await load();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("clothing-stock-changed"));
+    }
     setPanel({ mode: "barcode", item });
   }
 
@@ -724,10 +846,16 @@ export function ProductsManager({ business }: { business: Business }) {
                   Color
                 </th>
                 <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  Price
+                  Cost
+                </th>
+                <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Sell
                 </th>
                 <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Offer
+                </th>
+                <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Stock
                 </th>
                 <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Barcode
@@ -776,11 +904,24 @@ export function ProductsManager({ business }: { business: Business }) {
                     </td>
                     <td className="px-3 py-2.5 text-slate-700">{item.size}</td>
                     <td className="px-3 py-2.5 text-slate-700">{item.color}</td>
-                    <td className="px-3 py-2.5 tabular-nums text-slate-900">
+                    <td className="px-3 py-2.5 tabular-nums text-slate-600">
+                      {formatMoney(item.cost_price ?? 0)}
+                    </td>
+                    <td className="px-3 py-2.5 tabular-nums font-medium text-slate-900">
                       {formatMoney(item.selling_price)}
                     </td>
                     <td className="px-3 py-2.5 tabular-nums text-slate-700">
                       {item.offer_percent > 0 ? `${item.offer_percent}%` : "-"}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-3 py-2.5 tabular-nums font-medium",
+                        (item.stock_qty ?? 0) <= 0
+                          ? "text-red-600"
+                          : "text-slate-900",
+                      )}
+                    >
+                      {item.stock_qty ?? 0}
                     </td>
                     <td className="px-3 py-2.5">
                       <button
@@ -793,6 +934,24 @@ export function ProductsManager({ business }: { business: Business }) {
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       <div className="inline-flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => void handleStockAdjust(item, "in")}
+                          className="inline-flex items-center gap-1 border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                          title={`Stock in · ${item.name}`}
+                        >
+                          <PackagePlus className="h-3.5 w-3.5" />
+                          In
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleStockAdjust(item, "out")}
+                          className="inline-flex items-center gap-1 border border-amber-200 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-50"
+                          title={`Stock out · ${item.name}`}
+                        >
+                          <PackageMinus className="h-3.5 w-3.5" />
+                          Out
+                        </button>
                         <button
                           type="button"
                           onClick={() => openEdit(item)}
@@ -902,17 +1061,27 @@ export function ProductsManager({ business }: { business: Business }) {
                         />
                       </Field>
                       <Field label="Category">
-                        <input
+                        <select
                           className={fieldClass}
                           value={form.category}
+                          required
                           onChange={(e) =>
                             setForm((f) => ({ ...f, category: e.target.value }))
                           }
-                          placeholder="Shirts"
-                        />
+                        >
+                          <option value="">Select category</option>
+                          {CLOTHING_CATEGORIES.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
                       </Field>
                     </div>
-                    <Field label="Sub category">
+                    <Field
+                      label="Sub category"
+                      hint="Optional — e.g. Formal, Casual"
+                    >
                       <input
                         className={fieldClass}
                         value={form.sub_category}
@@ -922,7 +1091,7 @@ export function ProductsManager({ business }: { business: Business }) {
                             sub_category: e.target.value,
                           }))
                         }
-                        placeholder="Formal"
+                        placeholder="Optional"
                       />
                     </Field>
                   </section>
@@ -972,7 +1141,26 @@ export function ProductsManager({ business }: { business: Business }) {
                       Pricing
                     </p>
                     <div className="grid grid-cols-2 gap-3">
-                      <Field label="Selling price (₹)">
+                      <Field
+                        label="Cost price (₹)"
+                        hint="Purchase / buy price"
+                      >
+                        <input
+                          className={fieldClass}
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={form.cost_price}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              cost_price: e.target.value,
+                            }))
+                          }
+                          placeholder="800"
+                        />
+                      </Field>
+                      <Field label="Sell price (₹)">
                         <input
                           className={fieldClass}
                           type="number"
@@ -989,6 +1177,8 @@ export function ProductsManager({ business }: { business: Business }) {
                           required
                         />
                       </Field>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
                       <Field label="Tax %">
                         <input
                           className={fieldClass}
@@ -1001,8 +1191,6 @@ export function ProductsManager({ business }: { business: Business }) {
                           }
                         />
                       </Field>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
                       <Field
                         label="Offer %"
                         hint="Offer % auto-cuts price when barcode scanned on Billing"
@@ -1023,27 +1211,54 @@ export function ProductsManager({ business }: { business: Business }) {
                           placeholder="0"
                         />
                       </Field>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
                       <Field
-                        label="Barcode"
+                        label="Opening / Stock qty"
                         hint={
                           panel.editItem
-                            ? "Required — editable"
-                            : "Optional — auto-generated if empty"
+                            ? "Current stock — use Stock In/Out to change"
+                            : "Initial stock on create"
                         }
                       >
                         <input
                           className={fieldClass}
-                          value={form.barcode}
+                          type="number"
+                          min={0}
+                          step="1"
+                          value={form.stock_qty}
                           onChange={(e) =>
-                            setForm((f) => ({ ...f, barcode: e.target.value }))
+                            setForm((f) => ({
+                              ...f,
+                              stock_qty: e.target.value,
+                            }))
                           }
-                          placeholder={
-                            panel.editItem ? "Barcode" : "Leave blank to auto"
-                          }
-                          required={Boolean(panel.editItem)}
+                          placeholder="0"
+                          readOnly={Boolean(panel.editItem)}
+                          disabled={Boolean(panel.editItem)}
                         />
                       </Field>
                     </div>
+                    <Field
+                      label="Barcode"
+                      hint={
+                        panel.editItem
+                          ? "Required — editable"
+                          : "Optional — auto-generated if empty"
+                      }
+                    >
+                      <input
+                        className={fieldClass}
+                        value={form.barcode}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, barcode: e.target.value }))
+                        }
+                        placeholder={
+                          panel.editItem ? "Barcode" : "Leave blank to auto"
+                        }
+                        required={Boolean(panel.editItem)}
+                      />
+                    </Field>
                     <p className="rounded-sm bg-brand-soft px-3 py-2 text-xs text-brand-dark">
                       Barcode format:{" "}
                       <span className="font-mono font-semibold">
@@ -1090,7 +1305,13 @@ export function ProductsManager({ business }: { business: Business }) {
                       <dd className="text-slate-800">{panel.item.color}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-slate-500">Price</dt>
+                      <dt className="text-xs text-slate-500">Cost price</dt>
+                      <dd className="tabular-nums text-slate-800">
+                        {formatMoney(panel.item.cost_price ?? 0)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-slate-500">Sell price</dt>
                       <dd className="font-semibold tabular-nums text-slate-900">
                         {formatMoney(panel.item.selling_price)}
                       </dd>
@@ -1107,7 +1328,41 @@ export function ProductsManager({ business }: { business: Business }) {
                       <dt className="text-xs text-slate-500">Tax</dt>
                       <dd className="text-slate-800">{panel.item.tax_rate}%</dd>
                     </div>
+                    <div>
+                      <dt className="text-xs text-slate-500">Stock qty</dt>
+                      <dd
+                        className={cn(
+                          "font-semibold tabular-nums",
+                          (panel.item.stock_qty ?? 0) <= 0
+                            ? "text-red-600"
+                            : "text-slate-900",
+                        )}
+                      >
+                        {panel.item.stock_qty ?? 0}
+                      </dd>
+                    </div>
                   </dl>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                      onClick={() => void handleStockAdjust(panel.item, "in")}
+                    >
+                      <PackagePlus className="h-4 w-4" />
+                      Stock In
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 border-amber-200 text-amber-800 hover:bg-amber-50"
+                      onClick={() => void handleStockAdjust(panel.item, "out")}
+                    >
+                      <PackageMinus className="h-4 w-4" />
+                      Stock Out
+                    </Button>
+                  </div>
 
                   <div className="border border-brand-border bg-brand-soft/40 py-6 text-center">
                     <div className="flex justify-center">

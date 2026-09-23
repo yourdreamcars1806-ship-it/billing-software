@@ -77,8 +77,12 @@ export interface ProductVariant {
   color: string | null;
   fabric: string | null;
   selling_price: number;
+  cost_price?: number;
   tax_rate: number | null;
   offer_percent?: number;
+  stock_qty?: number;
+  stock_in_total?: number;
+  stock_out_total?: number;
   barcode: string | null;
   barcode_format: string;
   image_url: string | null;

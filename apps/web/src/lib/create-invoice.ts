@@ -275,6 +275,21 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<{
     };
   }
 
+  // Clothing stock-out for scanned/linked variants
+  try {
+    const { stockOutForInvoiceLines } = await import("@/lib/stock");
+    await stockOutForInvoiceLines({
+      businessId: input.business_id,
+      invoiceId: invoice.id as string,
+      lines: computedItems.map((i) => ({
+        product_variant_id: i.product_variant_id,
+        quantity: Number(i.quantity) || 0,
+      })),
+    });
+  } catch {
+    // Don't fail the bill if stock update fails (e.g. migration not applied yet)
+  }
+
   if (input.initial_payment?.amount && input.initial_payment.amount > 0) {
     const { error: payError } = await supabase.from("payments").insert({
       business_id: input.business_id,

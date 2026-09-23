@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import {
   DEMO_MODE,
   getDemoBusiness,
   getDemoInvoices,
   getDemoStats,
 } from "@/lib/demo/data";
+import { getBusinessBySlug } from "@/lib/business/get-business";
+import { createClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { paymentStatusLabel } from "@/lib/payment-status";
@@ -15,25 +16,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-async function getBusiness(slug: string) {
-  if (DEMO_MODE) return getDemoBusiness(slug) || null;
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("businesses")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-  return data as Business | null;
-}
-
 export default async function DashboardPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const business = await getBusiness(slug);
+  const business = await getBusinessBySlug(slug);
   if (!business) notFound();
 
   let stats: DashboardStats;
@@ -45,13 +34,27 @@ export default async function DashboardPage({
   } else {
     const supabase = await createClient();
 
-    const { data: statsRow } = await supabase
-      .from("dashboard_stats")
-      .select("*")
-      .eq("business_id", business.id)
-      .maybeSingle();
+    const [statsRes, recentRes] = await Promise.all([
+      supabase
+        .from("dashboard_stats")
+        .select(
+          "business_id, today_sales, today_collection, pending_amount, total_invoices, paid_invoices, partial_invoices, pending_invoices",
+        )
+        .eq("business_id", business.id)
+        .maybeSingle(),
+      supabase
+        .from("invoices")
+        .select(
+          "id, business_id, invoice_number, invoice_date, status, payment_status, grand_total, paid_amount, pending_amount, customers(name)",
+        )
+        .eq("business_id", business.id)
+        .eq("status", "issued")
+        .order("invoice_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(8),
+    ]);
 
-    stats = statsRow || {
+    stats = statsRes.data || {
       business_id: business.id,
       today_sales: 0,
       today_collection: 0,
@@ -62,16 +65,7 @@ export default async function DashboardPage({
       pending_invoices: 0,
     };
 
-    const { data: recent } = await supabase
-      .from("invoices")
-      .select("*, customers(name)")
-      .eq("business_id", business.id)
-      .eq("status", "issued")
-      .order("invoice_date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(8);
-
-    invoices = (recent || []) as Invoice[];
+    invoices = (recentRes.data || []) as unknown as Invoice[];
   }
 
   const isCar = business.business_type === "car";

@@ -97,8 +97,12 @@ export interface ProductVariant {
   color: string | null;
   fabric: string | null;
   selling_price: number;
+  cost_price?: number;
   tax_rate: number | null;
   offer_percent?: number;
+  stock_qty?: number;
+  stock_in_total?: number;
+  stock_out_total?: number;
   barcode: string | null;
   barcode_format?: string;
   sku?: string | null;
@@ -117,11 +121,15 @@ export interface ClothingProductItem {
   size: string;
   color: string;
   fabric: string | null;
+  cost_price: number;
   selling_price: number;
   tax_rate: number;
   offer_percent: number;
   barcode: string;
   barcode_format: string;
+  stock_qty: number;
+  stock_in_total?: number;
+  stock_out_total?: number;
   is_active: boolean;
 }
 

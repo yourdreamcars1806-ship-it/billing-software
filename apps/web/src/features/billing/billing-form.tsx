@@ -17,9 +17,9 @@ interface LineDraft {
   description: string;
   quantity: number;
   unit_price: number;
-  discount_amount: number;
+  /** Discount percent (0-100). Amount is derived for totals/save. */
+  discount_percent: number;
   tax_rate: number;
-  offer_percent?: number;
   product_variant_id?: string;
   barcode?: string;
   size?: string;
@@ -31,9 +31,13 @@ const emptyLine = (): LineDraft => ({
   description: "",
   quantity: 1,
   unit_price: 0,
-  discount_amount: 0,
+  discount_percent: 0,
   tax_rate: 0,
 });
+
+function lineDiscountAmount(line: Pick<LineDraft, "quantity" | "unit_price" | "discount_percent">) {
+  return discountFromOffer(line.quantity, line.unit_price, line.discount_percent);
+}
 
 type ScannedPreview = {
   title: string;
@@ -50,7 +54,7 @@ export function BillingForm({ business }: { business: Business }) {
   const [customerName, setCustomerName] = useState("");
   const [customerMobile, setCustomerMobile] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
-  const [discount, setDiscount] = useState(0);
+  const [discountPercent, setDiscountPercent] = useState(0);
   const [additional, setAdditional] = useState(0);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -76,48 +80,37 @@ export function BillingForm({ business }: { business: Business }) {
   const totals = useMemo(() => {
     let subtotal = 0;
     let tax = 0;
+    let lineDiscTotal = 0;
     for (const line of lines) {
-      const taxable = Math.max(
-        line.quantity * line.unit_price - line.discount_amount,
-        0,
-      );
+      const disc = lineDiscountAmount(line);
+      const taxable = Math.max(line.quantity * line.unit_price - disc, 0);
       subtotal += line.quantity * line.unit_price;
+      lineDiscTotal += disc;
       tax += (taxable * line.tax_rate) / 100;
     }
     const itemsNet = lines.reduce((sum, line) => {
-      const taxable = Math.max(
-        line.quantity * line.unit_price - line.discount_amount,
-        0,
-      );
+      const disc = lineDiscountAmount(line);
+      const taxable = Math.max(line.quantity * line.unit_price - disc, 0);
       return sum + taxable + (taxable * line.tax_rate) / 100;
     }, 0);
-    const grand = Math.max(itemsNet - discount + additional, 0);
+    const invoiceDisc = round2(
+      Math.max(0, Math.min(100, discountPercent)) > 0
+        ? (itemsNet * discountPercent) / 100
+        : 0,
+    );
+    const grand = Math.max(itemsNet - invoiceDisc + additional, 0);
     return {
       subtotal: round2(subtotal),
+      lineDiscTotal: round2(lineDiscTotal),
       tax: round2(tax),
+      invoiceDisc: round2(invoiceDisc),
       grand: round2(grand),
     };
-  }, [lines, discount, additional]);
+  }, [lines, discountPercent, additional]);
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
     setLines((prev) =>
-      prev.map((l) => {
-        if (l.key !== key) return l;
-        const next = { ...l, ...patch };
-        if (
-          next.offer_percent &&
-          next.offer_percent > 0 &&
-          ("quantity" in patch || "unit_price" in patch) &&
-          !("discount_amount" in patch)
-        ) {
-          next.discount_amount = discountFromOffer(
-            next.quantity,
-            next.unit_price,
-            next.offer_percent,
-          );
-        }
-        return next;
-      }),
+      prev.map((l) => (l.key === key ? { ...l, ...patch } : l)),
     );
   }
 
@@ -148,9 +141,8 @@ export function BillingForm({ business }: { business: Business }) {
             description: title,
             quantity: 1,
             unit_price: price,
-            discount_amount: disc,
+            discount_percent: offer,
             tax_rate: product.tax_rate,
-            offer_percent: offer,
             product_variant_id: product.id,
             barcode: product.barcode,
             size: product.size,
@@ -166,7 +158,7 @@ export function BillingForm({ business }: { business: Business }) {
         });
         setSuccess(
           offer > 0
-            ? `Added ${title} · ${offer}% off · Disc ₹${disc.toLocaleString("en-IN")}`
+            ? `Added ${title} · ${offer}% off (save ₹${disc.toLocaleString("en-IN")})`
             : `Added ${title} · Size ${product.size} · Color ${product.color} · ₹${price.toLocaleString("en-IN")}`,
         );
         setBarcodeInput("");
@@ -204,9 +196,8 @@ export function BillingForm({ business }: { business: Business }) {
           description: title,
           quantity: 1,
           unit_price: price,
-          discount_amount: disc,
+          discount_percent: offer,
           tax_rate: Number(variant.tax_rate || 0),
-          offer_percent: offer,
           product_variant_id: variant.id,
           barcode: barcodeValue,
           size: variant.size || undefined,
@@ -222,7 +213,7 @@ export function BillingForm({ business }: { business: Business }) {
       });
       setSuccess(
         offer > 0
-          ? `Added ${title} · ${offer}% off · Disc ₹${disc.toLocaleString("en-IN")}`
+          ? `Added ${title} · ${offer}% off (save ₹${disc.toLocaleString("en-IN")})`
           : `Added ${title}${variant.size ? ` · Size ${variant.size}` : ""}${variant.color ? ` · Color ${variant.color}` : ""} · ₹${price.toLocaleString("en-IN")}`,
       );
       setBarcodeInput("");
@@ -259,14 +250,14 @@ export function BillingForm({ business }: { business: Business }) {
           description: l.description,
           quantity: l.quantity,
           unit_price: l.unit_price,
-          discount_amount: l.discount_amount,
+          discount_amount: lineDiscountAmount(l),
           tax_rate: l.tax_rate,
           product_variant_id: l.product_variant_id,
           barcode: l.barcode,
           size: l.size,
           color: l.color,
         })),
-        discount_amount: discount,
+        discount_amount: totals.invoiceDisc,
         additional_charges: additional,
         notes: notes || undefined,
         auto_whatsapp: true,
@@ -505,7 +496,7 @@ export function BillingForm({ business }: { business: Business }) {
                       Price
                     </th>
                     <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                      Disc
+                      Disc %
                     </th>
                     <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                       Tax %
@@ -577,18 +568,29 @@ export function BillingForm({ business }: { business: Business }) {
                         />
                       </td>
                       <td className="p-1.5">
-                        <input
-                          className="h-9 w-20 border border-transparent bg-transparent px-2 text-sm outline-none focus:border-brand"
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={line.discount_amount}
-                          onChange={(e) =>
-                            updateLine(line.key, {
-                              discount_amount: Number(e.target.value),
-                            })
-                          }
-                        />
+                        <div>
+                          <input
+                            className="h-9 w-20 border border-transparent bg-transparent px-2 text-sm outline-none focus:border-brand"
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="0.01"
+                            value={line.discount_percent}
+                            onChange={(e) =>
+                              updateLine(line.key, {
+                                discount_percent: Math.min(
+                                  100,
+                                  Math.max(0, Number(e.target.value) || 0),
+                                ),
+                              })
+                            }
+                          />
+                          {line.discount_percent > 0 ? (
+                            <p className="px-2 text-[10px] tabular-nums text-emerald-700">
+                              -{formatMoney(lineDiscountAmount(line))}
+                            </p>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="p-1.5">
                         <input
@@ -629,18 +631,35 @@ export function BillingForm({ business }: { business: Business }) {
               Totals
             </p>
             <Row label="Subtotal" value={formatMoney(totals.subtotal)} />
+            {totals.lineDiscTotal > 0 ? (
+              <Row
+                label="Item discount"
+                value={`-${formatMoney(totals.lineDiscTotal)}`}
+              />
+            ) : null}
             <Row label="Tax" value={formatMoney(totals.tax)} />
             <label className="block">
               <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Invoice discount
+                Invoice discount %
               </span>
               <input
                 className="mt-1 h-9 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
                 type="number"
                 min={0}
-                value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value))}
+                max={100}
+                step="0.01"
+                value={discountPercent}
+                onChange={(e) =>
+                  setDiscountPercent(
+                    Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                  )
+                }
               />
+              {discountPercent > 0 ? (
+                <p className="mt-1 text-[11px] tabular-nums text-emerald-700">
+                  -{formatMoney(totals.invoiceDisc)}
+                </p>
+              ) : null}
             </label>
             <label className="block">
               <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">

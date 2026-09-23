@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { getBusinessBySlug } from "@/lib/business/get-business";
-import { ProductsManager } from "@/features/products/products-manager";
+import { StockPage } from "@/features/stock/stock-page";
 
-export default async function ProductsPage({
+export default async function StockRoute({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -13,5 +13,5 @@ export default async function ProductsPage({
   if (business.business_type !== "clothing") {
     redirect(`/b/${slug}/dashboard`);
   }
-  return <ProductsManager business={business} />;
+  return <StockPage business={business} />;
 }

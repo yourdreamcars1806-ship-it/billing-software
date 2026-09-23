@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { DEMO_MODE, getDemoBusiness, getDemoStats } from "@/lib/demo/data";
+import { DEMO_MODE, getDemoStats } from "@/lib/demo/data";
+import { getBusinessBySlug } from "@/lib/business/get-business";
 import { createClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/ui/stat-card";
 import { paymentStatusFilterLabel } from "@/lib/payment-status";
@@ -11,10 +12,10 @@ export default async function ReportsPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const b = await getBusinessBySlug(slug);
+  if (!b) notFound();
 
   if (DEMO_MODE) {
-    const b = getDemoBusiness(slug);
-    if (!b) notFound();
     const stats = getDemoStats(b.id);
     return (
       <ReportsView
@@ -35,13 +36,6 @@ export default async function ReportsPage({
   }
 
   const supabase = await createClient();
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (!business) notFound();
-  const b = business as Business;
 
   const today = new Date().toISOString().slice(0, 10);
   const monthStart = `${today.slice(0, 7)}-01`;

@@ -267,89 +267,122 @@ const SEED_PRODUCTS: Omit<ClothingProductItem, "business_id">[] = [
     id: "pv1",
     name: "Oxford Cotton Shirt",
     brand: "Drape",
-    category: "Shirts",
+    category: "Kurti",
     sub_category: "Formal",
     size: "M",
     color: "Black",
     fabric: "Cotton",
+    cost_price: 900,
     selling_price: 1499,
     tax_rate: 12,
     offer_percent: 10,
     barcode: "DD2603000001",
     barcode_format: "CODE128",
+    stock_qty: 12,
+    stock_in_total: 12,
+    stock_out_total: 0,
     is_active: true,
   },
   {
     id: "pv2",
     name: "Oxford Cotton Shirt",
     brand: "Drape",
-    category: "Shirts",
+    category: "Kurti",
     sub_category: "Formal",
     size: "L",
     color: "Black",
     fabric: "Cotton",
+    cost_price: 900,
     selling_price: 1499,
     tax_rate: 12,
     offer_percent: 10,
     barcode: "DD2603000002",
     barcode_format: "CODE128",
+    stock_qty: 8,
+    stock_in_total: 10,
+    stock_out_total: 2,
     is_active: true,
   },
   {
     id: "pv3",
     name: "Oxford Cotton Shirt",
     brand: "Drape",
-    category: "Shirts",
+    category: "Kurti",
     sub_category: "Formal",
     size: "M",
     color: "White",
     fabric: "Cotton",
+    cost_price: 900,
     selling_price: 1499,
     tax_rate: 12,
     offer_percent: 10,
     barcode: "DD2603000003",
     barcode_format: "CODE128",
+    stock_qty: 0,
+    stock_in_total: 5,
+    stock_out_total: 5,
     is_active: true,
   },
   {
     id: "pv4",
     name: "Slim Fit Chinos",
     brand: "Dreamwear",
-    category: "Trousers",
+    category: "2 piece",
     sub_category: "Casual",
     size: "32",
     color: "Navy",
     fabric: "Cotton blend",
+    cost_price: 1200,
     selling_price: 2199,
     tax_rate: 12,
     offer_percent: 10,
     barcode: "DD2603000004",
     barcode_format: "CODE128",
+    stock_qty: 15,
+    stock_in_total: 15,
+    stock_out_total: 0,
     is_active: true,
   },
   {
     id: "pv5",
     name: "Linen Kurta",
     brand: "Drape",
-    category: "Ethnic",
+    category: "Kurti",
     sub_category: "Kurta",
     size: "XL",
     color: "Beige",
     fabric: "Linen",
+    cost_price: 1100,
     selling_price: 1899,
     tax_rate: 5,
     offer_percent: 15,
     barcode: "DD2603000005",
     barcode_format: "CODE128",
+    stock_qty: 6,
+    stock_in_total: 6,
+    stock_out_total: 0,
     is_active: true,
   },
 ];
+
+function normalizeDemoProduct(p: ClothingProductItem): ClothingProductItem {
+  return {
+    ...p,
+    cost_price: Number(p.cost_price ?? 0),
+    offer_percent: Number(p.offer_percent || 0),
+    stock_qty: Number(p.stock_qty ?? 0),
+    stock_in_total: Number(p.stock_in_total ?? 0),
+    stock_out_total: Number(p.stock_out_total ?? 0),
+  };
+}
 
 export function getDemoClothingProducts(
   businessId: string,
 ): ClothingProductItem[] {
   if (typeof window === "undefined") {
-    return SEED_PRODUCTS.map((p) => ({ ...p, business_id: businessId, offer_percent: Number(p.offer_percent || 0) }));
+    return SEED_PRODUCTS.map((p) =>
+      normalizeDemoProduct({ ...p, business_id: businessId }),
+    );
   }
 
   try {
@@ -357,14 +390,18 @@ export function getDemoClothingProducts(
     if (raw) {
       const parsed = JSON.parse(raw) as ClothingProductItem[];
       if (Array.isArray(parsed) && parsed.length) {
-        return parsed.filter((p) => p.business_id === businessId).map((p) => ({ ...p, offer_percent: Number(p.offer_percent || 0) }));
+        return parsed
+          .filter((p) => p.business_id === businessId)
+          .map(normalizeDemoProduct);
       }
     }
   } catch {
     // ignore
   }
 
-  const seeded = SEED_PRODUCTS.map((p) => ({ ...p, business_id: businessId }));
+  const seeded = SEED_PRODUCTS.map((p) =>
+    normalizeDemoProduct({ ...p, business_id: businessId }),
+  );
   localStorage.setItem(DEMO_PRODUCTS_KEY, JSON.stringify(seeded));
   return seeded;
 }
@@ -394,15 +431,18 @@ export function addDemoClothingProduct(
     size: string;
     color: string;
     fabric?: string;
+    cost_price?: number;
     selling_price: number;
     tax_rate: number;
     offer_percent?: number;
     barcode?: string;
+    stock_qty?: number;
   },
 ): ClothingProductItem {
   const existing = getDemoClothingProducts(businessId);
   const seq = nextSequenceFromBarcodes(existing.map((p) => p.barcode));
   const barcode = input.barcode?.trim() || generateClothingBarcode(seq);
+  const stockQty = Math.max(0, Number(input.stock_qty || 0));
 
   const item: ClothingProductItem = {
     id: `pv-${Date.now()}`,
@@ -414,11 +454,15 @@ export function addDemoClothingProduct(
     size: input.size.trim(),
     color: input.color.trim(),
     fabric: input.fabric?.trim() || null,
+    cost_price: Math.max(0, Number(input.cost_price || 0)),
     selling_price: input.selling_price,
     tax_rate: input.tax_rate,
     offer_percent: Number(input.offer_percent || 0),
     barcode,
     barcode_format: "CODE128",
+    stock_qty: stockQty,
+    stock_in_total: stockQty,
+    stock_out_total: 0,
     is_active: true,
   };
 
@@ -437,10 +481,12 @@ export function updateDemoClothingProduct(
     size: string;
     color: string;
     fabric?: string;
+    cost_price?: number;
     selling_price: number;
     tax_rate: number;
     offer_percent?: number;
     barcode: string;
+    stock_qty?: number;
   },
 ): ClothingProductItem | null {
   const existing = getDemoClothingProducts(businessId);
@@ -456,13 +502,59 @@ export function updateDemoClothingProduct(
       size: input.size.trim(),
       color: input.color.trim(),
       fabric: input.fabric?.trim() || null,
+      cost_price: Math.max(0, Number(input.cost_price ?? p.cost_price ?? 0)),
       selling_price: input.selling_price,
       tax_rate: input.tax_rate,
       offer_percent: Number(input.offer_percent || 0),
       barcode: input.barcode.trim(),
+      ...(input.stock_qty !== undefined
+        ? { stock_qty: Math.max(0, Number(input.stock_qty || 0)) }
+        : {}),
     };
     return updated;
   });
+  if (!updated) return null;
+  saveDemoClothingProducts(next);
+  return updated;
+}
+
+export function updateDemoStock(
+  businessId: string,
+  productId: string,
+  type: "in" | "out",
+  qty: number,
+): ClothingProductItem | null {
+  const quantity = Number(qty);
+  if (!(quantity > 0)) return null;
+
+  const existing = getDemoClothingProducts(businessId);
+  let updated: ClothingProductItem | null = null;
+  const next = existing.map((p) => {
+    if (p.id !== productId) return p;
+    const current = Number(p.stock_qty ?? 0);
+    const stockIn = Number(p.stock_in_total ?? 0);
+    const stockOut = Number(p.stock_out_total ?? 0);
+
+    if (type === "out" && quantity > current) return p;
+
+    if (type === "in") {
+      updated = {
+        ...p,
+        stock_qty: current + quantity,
+        stock_in_total: stockIn + quantity,
+        stock_out_total: stockOut,
+      };
+    } else {
+      updated = {
+        ...p,
+        stock_qty: current - quantity,
+        stock_in_total: stockIn,
+        stock_out_total: stockOut + quantity,
+      };
+    }
+    return updated;
+  });
+
   if (!updated) return null;
   saveDemoClothingProducts(next);
   return updated;

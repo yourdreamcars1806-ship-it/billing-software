@@ -4,6 +4,7 @@ import {
   getDemoBusiness,
   getDemoPayments,
 } from "@/lib/demo/data";
+import { getBusinessBySlug } from "@/lib/business/get-business";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatMoney } from "@/lib/utils";
 import type { Business, Payment } from "@/types";
@@ -14,10 +15,10 @@ export default async function PaymentsPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const business = await getBusinessBySlug(slug);
+  if (!business) notFound();
 
   if (DEMO_MODE) {
-    const business = getDemoBusiness(slug);
-    if (!business) notFound();
     const rows = getDemoPayments(business.id).map((p) => ({
       ...p,
       invoices: {
@@ -36,25 +37,20 @@ export default async function PaymentsPage({
   }
 
   const supabase = await createClient();
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (!business) notFound();
-
   const { data: payments } = await supabase
     .from("payments")
-    .select("*, invoices(invoice_number)")
-    .eq("business_id", (business as Business).id)
+    .select(
+      "id, business_id, invoice_id, amount, payment_date, payment_method, reference_number, notes, invoices(invoice_number)",
+    )
+    .eq("business_id", business.id)
     .order("payment_date", { ascending: false })
     .limit(100);
 
-  const rows = (payments || []) as (Payment & {
+  const rows = (payments || []) as unknown as (Payment & {
     invoices?: { invoice_number: string } | null;
   })[];
 
-  return <PaymentsView business={business as Business} rows={rows} />;
+  return <PaymentsView business={business} rows={rows} />;
 }
 
 function PaymentsView({
