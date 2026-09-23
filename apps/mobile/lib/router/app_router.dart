@@ -10,6 +10,7 @@ import '../features/business_selection/presentation/business_selection_screen.da
 import '../features/business_selection/providers/business_provider.dart';
 import '../features/clothing/barcode/presentation/barcode_scanner_screen.dart';
 import '../features/clothing/products/presentation/products_screen.dart';
+import '../features/clothing/stock/presentation/stock_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/invoices/presentation/invoice_detail_screen.dart';
 import '../features/invoices/presentation/invoices_screen.dart';
@@ -68,6 +69,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/more';
       }
 
+      if (path == '/stock' && activeBusiness != null && !activeBusiness.isClothing) {
+        return '/more';
+      }
+
       return null;
     },
     routes: [
@@ -86,6 +91,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/products',
         builder: (context, state) => const ProductsScreen(),
+      ),
+      GoRoute(
+        path: '/stock',
+        builder: (context, state) => const StockScreen(),
       ),
       GoRoute(
         path: '/payments',

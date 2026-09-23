@@ -84,8 +84,14 @@ class ProductVariant extends Equatable {
     this.barcodeFormat = 'CODE128',
     this.imageUrl,
     this.isActive = true,
+    this.costPrice = 0,
+    this.offerPercent = 0,
+    this.stockQty = 0,
+    this.stockInTotal = 0,
+    this.stockOutTotal = 0,
     this.productName,
     this.productBrand,
+    this.productCategory,
   });
 
   final String id;
@@ -101,8 +107,14 @@ class ProductVariant extends Equatable {
   final String barcodeFormat;
   final String? imageUrl;
   final bool isActive;
+  final double costPrice;
+  final double offerPercent;
+  final double stockQty;
+  final double stockInTotal;
+  final double stockOutTotal;
   final String? productName;
   final String? productBrand;
+  final String? productCategory;
 
   factory ProductVariant.fromJson(Map<String, dynamic> json) {
     final products = json['products'];
@@ -127,8 +139,14 @@ class ProductVariant extends Equatable {
       barcodeFormat: json['barcode_format'] as String? ?? 'CODE128',
       imageUrl: json['image_url'] as String?,
       isActive: json['is_active'] as bool? ?? true,
+      costPrice: Product._toDouble(json['cost_price']),
+      offerPercent: Product._toDouble(json['offer_percent']),
+      stockQty: Product._toDouble(json['stock_qty']),
+      stockInTotal: Product._toDouble(json['stock_in_total']),
+      stockOutTotal: Product._toDouble(json['stock_out_total']),
       productName: productMap?['name'] as String?,
       productBrand: productMap?['brand'] as String?,
+      productCategory: productMap?['category'] as String?,
     );
   }
 

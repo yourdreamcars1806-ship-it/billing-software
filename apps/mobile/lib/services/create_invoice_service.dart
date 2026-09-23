@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/app_constants.dart';
+import 'stock_service.dart';
 import 'supabase_service.dart';
 
 final createInvoiceServiceProvider = Provider<CreateInvoiceService>((ref) {
@@ -352,6 +353,23 @@ class CreateInvoiceService {
         error: 'Failed to create line items: $e',
       );
     }
+
+    // Clothing stock-out (best-effort; don't fail the bill)
+    try {
+      final stock = StockService(_supabase);
+      await stock.stockOutForInvoiceLines(
+        businessId: input.businessId,
+        invoiceId: invoiceId,
+        lines: input.items
+            .map(
+              (i) => (
+                productVariantId: i.productVariantId,
+                quantity: i.quantity,
+              ),
+            )
+            .toList(),
+      );
+    } catch (_) {}
 
     final payAmt = input.initialPaymentAmount ?? 0;
     if (payAmt > 0) {

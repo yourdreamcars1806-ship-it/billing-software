@@ -1,3 +1,5 @@
+import '../../../../core/constants/clothing_categories.dart';
+
 class ScannedProduct {
   const ScannedProduct({
     required this.variantId,
@@ -9,6 +11,8 @@ class ScannedProduct {
     this.size,
     this.color,
     this.fabric,
+    this.offerPercent = 0,
+    this.stockQty = 0,
   });
 
   final String variantId;
@@ -20,6 +24,11 @@ class ScannedProduct {
   final String? fabric;
   final double sellingPrice;
   final double taxRate;
+  final double offerPercent;
+  final double stockQty;
+
+  /// Price after offer % (used on billing).
+  double get billPrice => effectiveSellPrice(sellingPrice, offerPercent);
 
   String get description {
     final parts = <String>[
@@ -41,6 +50,8 @@ class ScannedProduct {
         'fabric': fabric,
         'sellingPrice': sellingPrice,
         'taxRate': taxRate,
+        'offerPercent': offerPercent,
+        'stockQty': stockQty,
       };
 
   factory ScannedProduct.fromMap(Map<String, dynamic> map) {
@@ -54,6 +65,8 @@ class ScannedProduct {
       fabric: map['fabric'] as String?,
       sellingPrice: (map['sellingPrice'] as num).toDouble(),
       taxRate: (map['taxRate'] as num).toDouble(),
+      offerPercent: (map['offerPercent'] as num?)?.toDouble() ?? 0,
+      stockQty: (map['stockQty'] as num?)?.toDouble() ?? 0,
     );
   }
 }

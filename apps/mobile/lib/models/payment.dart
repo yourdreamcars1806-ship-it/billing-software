@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum PaymentMethod { cash, upi, card, bankTransfer, other }
+enum PaymentMethod { cash, upi, upiCash, card, bankTransfer, other }
 
 class Payment extends Equatable {
   const Payment({
@@ -59,6 +59,8 @@ class Payment extends Equatable {
         return PaymentMethod.cash;
       case 'upi':
         return PaymentMethod.upi;
+      case 'upi_cash':
+        return PaymentMethod.upiCash;
       case 'card':
         return PaymentMethod.card;
       case 'bank_transfer':
@@ -75,6 +77,8 @@ class Payment extends Equatable {
         return 'cash';
       case PaymentMethod.upi:
         return 'upi';
+      case PaymentMethod.upiCash:
+        return 'upi_cash';
       case PaymentMethod.card:
         return 'card';
       case PaymentMethod.bankTransfer:
@@ -90,6 +94,8 @@ class Payment extends Equatable {
         return 'Cash';
       case PaymentMethod.upi:
         return 'UPI';
+      case PaymentMethod.upiCash:
+        return 'UPI + Cash';
       case PaymentMethod.card:
         return 'Card';
       case PaymentMethod.bankTransfer:
@@ -98,6 +104,9 @@ class Payment extends Equatable {
         return 'Other';
     }
   }
+
+  /// DB / API string for create-invoice.
+  static String toApi(PaymentMethod method) => _paymentMethodToString(method);
 
   static double _toDouble(dynamic value) {
     if (value == null) return 0;

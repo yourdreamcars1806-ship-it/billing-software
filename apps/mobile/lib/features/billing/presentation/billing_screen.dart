@@ -152,7 +152,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           _LineItem(
             key: UniqueKey().toString(),
             description: title,
-            unitPrice: product.sellingPrice,
+            unitPrice: product.billPrice,
             taxRate: product.taxRate,
             barcode: product.barcode,
             size: product.size,
@@ -163,7 +163,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _lastScanned = _LastScanned(
           title: title,
           barcode: product.barcode,
-          price: product.sellingPrice,
+          price: product.billPrice,
           size: product.size,
           color: product.color,
         );
@@ -211,6 +211,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           fabric: variant.fabric,
           sellingPrice: variant.sellingPrice,
           taxRate: variant.taxRate,
+          offerPercent: variant.offerPercent,
+          stockQty: variant.stockQty,
         ),
       );
     } catch (e) {
@@ -273,6 +275,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           methodStr = 'cash';
         case PaymentMethod.upi:
           methodStr = 'upi';
+        case PaymentMethod.upiCash:
+          methodStr = 'upi_cash';
         case PaymentMethod.card:
           methodStr = 'card';
         case PaymentMethod.bankTransfer:

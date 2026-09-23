@@ -241,6 +241,14 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                   accent: brand,
                   onTap: () => context.push('/products'),
                 ),
+              if (business?.isClothing == true)
+                _SettingsTile(
+                  icon: Icons.inventory_2_outlined,
+                  title: 'Stock by category',
+                  subtitle: 'Stock · buy · sell per category',
+                  accent: brand,
+                  onTap: () => context.push('/stock'),
+                ),
               _SettingsTile(
                 icon: Icons.description_outlined,
                 title: 'Invoices',

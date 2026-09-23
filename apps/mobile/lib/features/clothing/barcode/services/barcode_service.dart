@@ -17,6 +17,38 @@ class BarcodeService {
 
   final Ref _ref;
 
+  ScannedProduct _fromDemo(DemoClothingProduct demo) {
+    return ScannedProduct(
+      variantId: demo.id,
+      barcode: demo.barcode,
+      name: demo.name,
+      brand: demo.brand,
+      size: demo.size,
+      color: demo.color,
+      fabric: demo.fabric,
+      sellingPrice: demo.sellingPrice,
+      taxRate: demo.taxRate,
+      offerPercent: demo.offerPercent,
+      stockQty: demo.stockQty,
+    );
+  }
+
+  ScannedProduct _fromVariant(ProductVariant variant, String code) {
+    return ScannedProduct(
+      variantId: variant.id,
+      barcode: variant.barcode ?? code,
+      name: variant.productName ?? 'Item',
+      brand: variant.productBrand,
+      size: variant.size,
+      color: variant.color,
+      fabric: variant.fabric,
+      sellingPrice: variant.sellingPrice,
+      taxRate: variant.taxRate,
+      offerPercent: variant.offerPercent,
+      stockQty: variant.stockQty,
+    );
+  }
+
   Future<ScannedProduct?> lookupScannedProduct(String barcode) async {
     final business = _ref.read(activeBusinessProvider);
     if (business == null || !business.isClothing) return null;
@@ -24,39 +56,16 @@ class BarcodeService {
     final code = barcode.trim().toUpperCase();
     if (code.isEmpty) return null;
 
-    // Demo catalog (works without Supabase; also fallback)
     final demo = findDemoProductByBarcode(code);
     if (demo != null &&
         (!Env.isConfigured ||
             business.id == demoClothingBusinessId ||
             business.slug == 'drape-and-dream')) {
-      return ScannedProduct(
-        variantId: demo.id,
-        barcode: demo.barcode,
-        name: demo.name,
-        brand: demo.brand,
-        size: demo.size,
-        color: demo.color,
-        fabric: demo.fabric,
-        sellingPrice: demo.sellingPrice,
-        taxRate: demo.taxRate,
-      );
+      return _fromDemo(demo);
     }
 
     if (!Env.isConfigured) {
-      return demo == null
-          ? null
-          : ScannedProduct(
-              variantId: demo.id,
-              barcode: demo.barcode,
-              name: demo.name,
-              brand: demo.brand,
-              size: demo.size,
-              color: demo.color,
-              fabric: demo.fabric,
-              sellingPrice: demo.sellingPrice,
-              taxRate: demo.taxRate,
-            );
+      return demo == null ? null : _fromDemo(demo);
     }
 
     try {
@@ -64,48 +73,12 @@ class BarcodeService {
           .read(productRepositoryProvider)
           .findVariantByBarcode(business.id, code);
       if (variant == null) {
-        // Fallback to demo barcodes for testing
-        if (demo != null) {
-          return ScannedProduct(
-            variantId: demo.id,
-            barcode: demo.barcode,
-            name: demo.name,
-            brand: demo.brand,
-            size: demo.size,
-            color: demo.color,
-            fabric: demo.fabric,
-            sellingPrice: demo.sellingPrice,
-            taxRate: demo.taxRate,
-          );
-        }
+        if (demo != null) return _fromDemo(demo);
         return null;
       }
-
-      return ScannedProduct(
-        variantId: variant.id,
-        barcode: variant.barcode ?? code,
-        name: variant.productName ?? 'Item',
-        brand: variant.productBrand,
-        size: variant.size,
-        color: variant.color,
-        fabric: variant.fabric,
-        sellingPrice: variant.sellingPrice,
-        taxRate: variant.taxRate,
-      );
+      return _fromVariant(variant, code);
     } catch (_) {
-      if (demo != null) {
-        return ScannedProduct(
-          variantId: demo.id,
-          barcode: demo.barcode,
-          name: demo.name,
-          brand: demo.brand,
-          size: demo.size,
-          color: demo.color,
-          fabric: demo.fabric,
-          sellingPrice: demo.sellingPrice,
-          taxRate: demo.taxRate,
-        );
-      }
+      if (demo != null) return _fromDemo(demo);
       return null;
     }
   }
@@ -123,6 +96,8 @@ class BarcodeService {
       color: scanned.color,
       fabric: scanned.fabric,
       barcode: scanned.barcode,
+      offerPercent: scanned.offerPercent,
+      stockQty: scanned.stockQty,
       productName: scanned.name,
       productBrand: scanned.brand,
     );
