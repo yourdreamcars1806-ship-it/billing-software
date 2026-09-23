@@ -42,6 +42,8 @@ export function InvoicesManager({ business }: { business: Business }) {
   const [loading, setLoading] = useState(true);
   const [panel, setPanel] = useState<PanelMode>({ type: "closed" });
   const [payAmount, setPayAmount] = useState(0);
+  /** Cars: token (partial) vs final (full outstanding). */
+  const [payMode, setPayMode] = useState<"token" | "final">("token");
   const [payMethod, setPayMethod] = useState<PaymentMethod>("cash");
   const [payRef, setPayRef] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -160,9 +162,18 @@ export function InvoicesManager({ business }: { business: Business }) {
 
   function openPay(inv: Invoice) {
     setPanel({ type: "pay", invoice: inv });
-    setPayAmount(Number(inv.amount_outstanding));
+    setPayMode(isCar ? "token" : "final");
+    setPayAmount(isCar ? 0 : Number(inv.amount_outstanding));
     setPayMethod("cash");
     setPayRef("");
+  }
+
+  function selectPayMode(mode: "token" | "final") {
+    setPayMode(mode);
+    if (panel.type !== "pay") return;
+    const outstanding = Number(panel.invoice.amount_outstanding) || 0;
+    if (mode === "final") setPayAmount(outstanding);
+    else setPayAmount(0);
   }
 
   async function downloadInvoice(inv: Invoice) {
@@ -491,7 +502,7 @@ export function InvoicesManager({ business }: { business: Business }) {
                           className="text-xs font-semibold text-brand-ink hover:underline"
                           onClick={() => openPay(inv)}
                         >
-                          {isCar ? "Token" : "Pay"}
+                          {isCar ? "Add payment" : "Pay"}
                         </button>
                       )}
                       <button
@@ -734,7 +745,7 @@ export function InvoicesManager({ business }: { business: Business }) {
                   className="flex-1"
                   onClick={() => openPay(viewInvoice)}
                 >
-                  {isCar ? "Add token / payment" : "Record payment"}
+                  {isCar ? "Add token / final" : "Record payment"}
                 </Button>
               )}
               <Button
@@ -754,19 +765,19 @@ export function InvoicesManager({ business }: { business: Business }) {
       <SidePanel
         open={panel.type === "pay"}
         onClose={() => setPanel({ type: "closed" })}
-        eyebrow={isCar ? "Token" : "Payment"}
+        eyebrow={isCar ? "Collection" : "Payment"}
         title={
           payInvoice
             ? isCar
-              ? `Token · ${payInvoice.invoice_number}`
+              ? `${payMode === "final" ? "Final" : "Token"} · ${payInvoice.invoice_number}`
               : `Pay ${payInvoice.invoice_number}`
             : isCar
-              ? "Token amount"
+              ? "Token / final amount"
               : "Payment"
         }
         description={
           payInvoice
-            ? `Outstanding ${formatMoney(payInvoice.amount_outstanding)}`
+            ? `Outstanding ${formatMoney(payInvoice.amount_outstanding)} · Sale ${formatMoney(payInvoice.grand_total)}`
             : undefined
         }
         footer={
@@ -785,22 +796,93 @@ export function InvoicesManager({ business }: { business: Business }) {
               loading={paySaving}
               onClick={addPayment}
             >
-              {isCar ? "Save token" : "Record payment"}
+              {isCar
+                ? payMode === "final"
+                  ? "Save final amount"
+                  : "Save token"
+                : "Record payment"}
             </Button>
           </div>
         }
       >
         {payInvoice && (
           <div className="space-y-4">
-            <Field label={isCar ? "Token / amount" : "Amount"}>
+            {isCar ? (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Payment type
+                </p>
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => selectPayMode("token")}
+                    className={
+                      payMode === "token"
+                        ? "h-9 border border-blue-600 bg-blue-600 text-sm font-semibold text-white"
+                        : "h-9 border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-blue-300"
+                    }
+                  >
+                    Token amount
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectPayMode("final")}
+                    className={
+                      payMode === "final"
+                        ? "h-9 border border-blue-600 bg-blue-600 text-sm font-semibold text-white"
+                        : "h-9 border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-blue-300"
+                    }
+                  >
+                    Final amount
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <Field
+              label={
+                isCar
+                  ? payMode === "final"
+                    ? "Final amount"
+                    : "Token amount"
+                  : "Amount"
+              }
+            >
               <input
                 className={fieldClass}
                 type="number"
                 min={0}
+                max={Number(payInvoice.amount_outstanding) || undefined}
                 value={payAmount}
-                onChange={(e) => setPayAmount(Number(e.target.value))}
+                onChange={(e) => {
+                  const outstanding = Number(payInvoice.amount_outstanding) || 0;
+                  const next = Math.max(0, Number(e.target.value) || 0);
+                  setPayAmount(next);
+                  if (!isCar) return;
+                  if (next >= outstanding && outstanding > 0) setPayMode("final");
+                  else if (payMode === "final" && next < outstanding) {
+                    setPayMode("token");
+                  }
+                }}
+                placeholder={
+                  isCar && payMode === "token"
+                    ? "Enter token / advance"
+                    : undefined
+                }
               />
             </Field>
+            {isCar &&
+            payAmount > 0 &&
+            payAmount < Number(payInvoice.amount_outstanding) ? (
+              <p className="text-xs text-slate-500">
+                Balance left{" "}
+                {formatMoney(
+                  Math.max(
+                    Number(payInvoice.amount_outstanding) - payAmount,
+                    0,
+                  ),
+                )}
+              </p>
+            ) : null}
             <Field label="Method">
               <select
                 className={`${fieldClass} mt-1.5`}

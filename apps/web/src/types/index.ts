@@ -67,6 +67,52 @@ export interface Invoice {
   customers?: Customer | null;
 }
 
+export type DeliveryNoteStatus = "draft" | "confirmed" | "cancelled";
+
+export interface DeliveryNote {
+  id: string;
+  business_id: string;
+  invoice_id: string | null;
+  delivery_note_number: string;
+  delivery_date: string;
+  delivery_time: string | null;
+  customer_name: string;
+  customer_address: string | null;
+  customer_mobile: string | null;
+  id_proof: string | null;
+  id_no: string | null;
+  car_make: string | null;
+  car_model_variant: string | null;
+  car_registration_number: string | null;
+  car_manufacturing_year: string | null;
+  car_color: string | null;
+  car_fuel_type: string | null;
+  car_chassis_number: string | null;
+  car_engine_number: string | null;
+  odometer_km: string | null;
+  total_vehicle_price: number | null;
+  amount_received: number | null;
+  balance_amount: number | null;
+  payment_modes: Record<string, boolean> | null;
+  payment_other: string | null;
+  docs: Record<string, boolean> | null;
+  docs_other: string | null;
+  declaration_name: string | null;
+  customer_sign_name: string | null;
+  customer_sign_datetime: string | null;
+  auth_sign_name: string | null;
+  handed_over_by: string | null;
+  cancel_terms_enabled?: boolean | null;
+  cancel_gst_percent?: number | null;
+  paper_processing_fee?: number | null;
+  cancellation_terms?: string | null;
+  delivery_status?: DeliveryNoteStatus | null;
+  status_changed_at?: string | null;
+  cancel_reason?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Payment {
   id: string;
   business_id: string;

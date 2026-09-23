@@ -291,19 +291,27 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<{
   }
 
   if (input.initial_payment?.amount && input.initial_payment.amount > 0) {
-    const { error: payError } = await supabase.from("payments").insert({
-      business_id: input.business_id,
-      invoice_id: invoice.id,
-      amount: input.initial_payment.amount,
-      payment_method: input.initial_payment.payment_method || "cash",
-      reference_number: input.initial_payment.reference_number || null,
-      created_by: session.user.id,
-    });
-    if (payError) {
-      return {
-        success: false,
-        error: `Invoice created but payment failed: ${payError.message}`,
-      };
+    const payAmt = Math.min(
+      round2(Number(input.initial_payment.amount) || 0),
+      grandTotal,
+    );
+    if (payAmt <= 0) {
+      // skip invalid / zero after clamp
+    } else {
+      const { error: payError } = await supabase.from("payments").insert({
+        business_id: input.business_id,
+        invoice_id: invoice.id,
+        amount: payAmt,
+        payment_method: input.initial_payment.payment_method || "cash",
+        reference_number: input.initial_payment.reference_number || null,
+        created_by: session.user.id,
+      });
+      if (payError) {
+        return {
+          success: false,
+          error: `Invoice created but payment failed: ${payError.message}`,
+        };
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DEMO_MODE, findDemoProductByBarcode } from "@/lib/demo/data";
@@ -57,6 +57,8 @@ export function BillingForm({ business }: { business: Business }) {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [additional, setAdditional] = useState(0);
   const [paymentAmount, setPaymentAmount] = useState(0);
+  /** Cars only: token (advance) vs final (full sale) collection now. */
+  const [carPayMode, setCarPayMode] = useState<"token" | "final">("token");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [notes, setNotes] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -107,6 +109,19 @@ export function BillingForm({ business }: { business: Business }) {
       grand: round2(grand),
     };
   }, [lines, discountPercent, additional]);
+
+  useEffect(() => {
+    if (!isCar) return;
+    if (carPayMode === "final") {
+      setPaymentAmount(totals.grand);
+    }
+  }, [isCar, carPayMode, totals.grand]);
+
+  function selectCarPayMode(mode: "token" | "final") {
+    setCarPayMode(mode);
+    if (mode === "final") setPaymentAmount(totals.grand);
+    else setPaymentAmount(0);
+  }
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
     setLines((prev) =>
@@ -272,7 +287,7 @@ export function BillingForm({ business }: { business: Business }) {
         initial_payment:
           paymentAmount > 0
             ? {
-                amount: paymentAmount,
+                amount: Math.min(paymentAmount, totals.grand),
                 payment_method: paymentMethod,
               }
             : undefined,
@@ -687,28 +702,90 @@ export function BillingForm({ business }: { business: Business }) {
                     : "text-[11px] font-semibold uppercase tracking-wider text-brand-ink"
                 }
               >
-                Grand total (Sales)
+                {isCar ? "Final amount (Sales)" : "Grand total (Sales)"}
               </p>
               <p className="mt-0.5 text-xl font-bold tabular-nums text-slate-900 sm:text-2xl">
                 {formatMoney(totals.grand)}
               </p>
             </div>
 
+            {isCar ? (
+              <div className="block">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Collect now
+                </span>
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => selectCarPayMode("token")}
+                    className={
+                      carPayMode === "token"
+                        ? "h-9 border border-blue-600 bg-blue-600 text-sm font-semibold text-white"
+                        : "h-9 border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-blue-300"
+                    }
+                  >
+                    Token amount
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectCarPayMode("final")}
+                    className={
+                      carPayMode === "final"
+                        ? "h-9 border border-blue-600 bg-blue-600 text-sm font-semibold text-white"
+                        : "h-9 border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-blue-300"
+                    }
+                  >
+                    Final amount
+                  </button>
+                </div>
+                <input
+                  className="mt-2 h-9 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                  type="number"
+                  min={0}
+                  max={totals.grand || undefined}
+                  value={paymentAmount}
+                  onChange={(e) => {
+                    const next = Math.max(0, Number(e.target.value) || 0);
+                    setPaymentAmount(next);
+                    if (next >= totals.grand && totals.grand > 0) {
+                      setCarPayMode("final");
+                    } else if (carPayMode === "final" && next < totals.grand) {
+                      setCarPayMode("token");
+                    }
+                  }}
+                  placeholder={
+                    carPayMode === "token"
+                      ? "Enter token / advance"
+                      : "Full final amount"
+                  }
+                />
+                {paymentAmount > 0 && paymentAmount < totals.grand ? (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Balance left {formatMoney(Math.max(totals.grand - paymentAmount, 0))}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <label className="block">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Payment received now
+                </span>
+                <input
+                  className="mt-1 h-9 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                  type="number"
+                  min={0}
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                />
+              </label>
+            )}
             <label className="block">
               <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                {isCar ? "Token / payment now" : "Payment received now"}
-              </span>
-              <input
-                className="mt-1 h-9 w-full border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
-                type="number"
-                min={0}
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(Number(e.target.value))}
-              />
-            </label>
-            <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                {isCar ? "Token method" : "Payment method"}
+                {isCar
+                  ? carPayMode === "final"
+                    ? "Final payment method"
+                    : "Token method"
+                  : "Payment method"}
               </span>
               <select
                 className="mt-1 h-9 w-full border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"

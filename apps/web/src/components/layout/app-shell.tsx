@@ -19,6 +19,7 @@ import {
   Plus,
   KeyRound,
   Package,
+  ClipboardCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { clearClientSessionCookies } from "@/lib/auth/session-cookies";
@@ -45,7 +46,18 @@ const NAV_ITEMS = [
     clothingOnly: true,
   },
   { href: "invoices", label: "Invoices", icon: FileText },
-  { href: "payments", label: "Payments", icon: CreditCard },
+  {
+    href: "delivery-note",
+    label: "Delivery note",
+    icon: ClipboardCheck,
+    carOnly: true,
+  },
+  {
+    href: "payments",
+    label: "Payments",
+    icon: CreditCard,
+    hideForCar: true,
+  },
   { href: "reports", label: "Reports", icon: BarChart3 },
   { href: "settings", label: "Settings", icon: Settings },
 ] as const;
@@ -56,6 +68,7 @@ const PAGE_TITLES: Record<string, string> = {
   products: "Products & Barcode",
   stock: "Stock by category",
   invoices: "Invoices",
+  "delivery-note": "Vehicle Delivery Note",
   payments: "Payments",
   reports: "Reports",
   settings: "Settings",
@@ -118,7 +131,7 @@ export function AppShell({
       const sub = parts[4];
       return (sub && PAGE_TITLES[sub]) || "Settings";
     }
-    if (section === "payments" && isCar) return "Tokens & payments";
+    if (section === "payments" && isCar) return "Payments";
     return PAGE_TITLES[section] || "Workspace";
   }, [pathname, isCar]);
 
@@ -163,13 +176,12 @@ export function AppShell({
   }
 
   function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-    const items = NAV_ITEMS.filter(
-      (item) => !("clothingOnly" in item && item.clothingOnly) || !isCar,
-    ).map((item) => ({
-      ...item,
-      label:
-        item.href === "payments" && isCar ? "Tokens" : item.label,
-    }));
+    const items = NAV_ITEMS.filter((item) => {
+      if ("clothingOnly" in item && item.clothingOnly && isCar) return false;
+      if ("carOnly" in item && item.carOnly && !isCar) return false;
+      if ("hideForCar" in item && item.hideForCar && isCar) return false;
+      return true;
+    });
 
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
