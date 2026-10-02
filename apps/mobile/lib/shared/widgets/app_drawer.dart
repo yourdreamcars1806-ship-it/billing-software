@@ -166,6 +166,15 @@ class AppDrawer extends ConsumerWidget {
                     soft: soft,
                     onTap: () => _go(context, '/invoices'),
                   ),
+                  if (!isClothing)
+                    _NavTile(
+                      icon: Icons.local_shipping_rounded,
+                      label: 'Delivery notes',
+                      active: active('/delivery-notes'),
+                      brand: brand,
+                      soft: soft,
+                      onTap: () => _go(context, '/delivery-notes'),
+                    ),
                   _NavTile(
                     icon: Icons.credit_card_rounded,
                     label: 'Payments',

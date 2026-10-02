@@ -12,6 +12,8 @@ import '../features/clothing/barcode/presentation/barcode_scanner_screen.dart';
 import '../features/clothing/products/presentation/products_screen.dart';
 import '../features/clothing/stock/presentation/stock_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/delivery_notes/presentation/delivery_note_editor_screen.dart';
+import '../features/delivery_notes/presentation/delivery_notes_screen.dart';
 import '../features/invoices/presentation/invoice_detail_screen.dart';
 import '../features/invoices/presentation/invoices_screen.dart';
 import '../features/payments/presentation/payments_screen.dart';
@@ -73,6 +75,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/more';
       }
 
+      if ((path == '/delivery-notes' || path.startsWith('/delivery-notes/')) &&
+          activeBusiness != null &&
+          !activeBusiness.isCar) {
+        return '/more';
+      }
+
       return null;
     },
     routes: [
@@ -122,6 +130,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id']!;
           final printBt = state.uri.queryParameters['print'] == 'bt';
           return InvoiceDetailScreen(invoiceId: id, autoPrintBt: printBt);
+        },
+      ),
+      GoRoute(
+        path: '/delivery-notes',
+        builder: (context, state) => const DeliveryNotesScreen(),
+      ),
+      GoRoute(
+        path: '/delivery-notes/new',
+        builder: (context, state) {
+          final extra = state.extra;
+          String? noteNo;
+          String? allocError;
+          if (extra is Map) {
+            noteNo = extra['noteNo'] as String?;
+            allocError = extra['allocError'] as String?;
+          }
+          return DeliveryNoteEditorScreen(
+            initialNoteNo: noteNo,
+            allocError: allocError,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/delivery-notes/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return DeliveryNoteEditorScreen(noteId: id);
         },
       ),
       StatefulShellRoute.indexedStack(

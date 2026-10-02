@@ -264,34 +264,23 @@ export function InvoicesManager({ business }: { business: Business }) {
       return;
     }
 
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
-      setBusyId(null);
-      return;
-    }
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-whatsapp-invoice`,
-      {
+    try {
+      const res = await fetch("/api/send-whatsapp-invoice", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           business_id: business.id,
           invoice_id: invoice.id,
         }),
-      },
-    );
-    const json = await res.json();
-    setBusyId(null);
-    if (!res.ok) setError(json.error || "WhatsApp send failed");
-    else setMessage(`WhatsApp sent for ${invoice.invoice_number}`);
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      setBusyId(null);
+      if (!res.ok) setError(json.error || "WhatsApp send failed");
+      else setMessage(`WhatsApp sent for ${invoice.invoice_number}`);
+    } catch (e) {
+      setBusyId(null);
+      setError(e instanceof Error ? e.message : "WhatsApp send failed");
+    }
   }
 
   async function deleteInvoice(inv: Invoice) {

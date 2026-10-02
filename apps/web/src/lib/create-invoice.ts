@@ -333,40 +333,26 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<{
     if (!mobileForWa.trim()) {
       whatsapp = { skipped: "no customer mobile" };
     } else {
-      const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (base && anon) {
-        try {
-          const waRes = await fetch(
-            `${base}/functions/v1/send-whatsapp-invoice`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-                apikey: anon,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                business_id: input.business_id,
-                invoice_id: invoice.id,
-                customer_mobile: mobileForWa.trim(),
-              }),
-            },
-          );
-          if (waRes.ok) whatsapp = { sent: true };
-          else {
-            const waJson = await waRes.json().catch(() => ({}));
-            whatsapp = {
-              error:
-                (waJson as { error?: string }).error ||
-                "WhatsApp function not available",
-            };
-          }
-        } catch {
-          whatsapp = { skipped: "WhatsApp edge function not reachable" };
+      try {
+        const waRes = await fetch("/api/send-whatsapp-invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            business_id: input.business_id,
+            invoice_id: invoice.id,
+            customer_mobile: mobileForWa.trim(),
+          }),
+        });
+        if (waRes.ok) whatsapp = { sent: true };
+        else {
+          const waJson = await waRes.json().catch(() => ({}));
+          whatsapp = {
+            error:
+              (waJson as { error?: string }).error || "WhatsApp send failed",
+          };
         }
-      } else {
-        whatsapp = { skipped: "WhatsApp not configured" };
+      } catch {
+        whatsapp = { error: "WhatsApp send failed" };
       }
     }
   }

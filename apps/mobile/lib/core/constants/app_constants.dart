@@ -14,4 +14,5 @@ class AppConstants {
   static const tablePayments = 'payments';
   static const tableProfiles = 'profiles';
   static const tableStockMovements = 'stock_movements';
+  static const tableDeliveryNotes = 'delivery_notes';
 }

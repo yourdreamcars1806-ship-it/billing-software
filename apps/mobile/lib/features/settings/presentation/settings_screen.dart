@@ -256,6 +256,14 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                 accent: brand,
                 onTap: () => context.go('/invoices'),
               ),
+              if (business?.isCar == true)
+                _SettingsTile(
+                  icon: Icons.local_shipping_outlined,
+                  title: 'Delivery notes',
+                  subtitle: 'Vehicle handover · A4 PDF',
+                  accent: brand,
+                  onTap: () => context.push('/delivery-notes'),
+                ),
               _SettingsTile(
                 icon: Icons.credit_card_outlined,
                 title: 'Payments',

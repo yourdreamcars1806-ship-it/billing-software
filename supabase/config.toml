@@ -13,7 +13,7 @@ major_version = 15
 enabled = true
 port = 54323
 
-[inbucket]
+[local_smtp]
 enabled = true
 port = 54324
 
@@ -30,8 +30,10 @@ enable_signup = true
 enable_signup = true
 enable_confirmations = false
 
-[functions]
-verify_jwt = true
+# Browser calls this directly. JWT is checked inside the function.
+# Gateway JWT check rejects the CORS preflight (no Authorization header).
+[functions."send-whatsapp-invoice"]
+verify_jwt = false
 
 [db.seed]
 enabled = true
