@@ -2,7 +2,14 @@ import Image from "next/image";
 import { Car } from "lucide-react";
 import { LoginForm } from "@/features/auth/login-form";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string; error_code?: string }>;
+}) {
+  const params = await searchParams;
+  const resetExpired =
+    params.reset === "expired" || params.error_code === "otp_expired";
   return (
     <div className="flex min-h-screen flex-col bg-[#eef0f3]">
       <header className="border-b border-slate-200/90 bg-white">
@@ -102,7 +109,7 @@ export default function LoginPage() {
                 Select business, then enter email & password.
               </p>
             </div>
-            <LoginForm compact />
+            <LoginForm compact resetExpired={resetExpired} />
           </div>
         </div>
       </main>

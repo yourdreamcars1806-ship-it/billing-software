@@ -14,10 +14,17 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useBusinessStore } from "@/hooks/use-business-store";
 import { Spinner, LoadingOverlay } from "@/components/ui/spinner";
+import { publicSiteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
 import type { Business } from "@/types";
 
-export function LoginForm({ compact = false }: { compact?: boolean }) {
+export function LoginForm({
+  compact = false,
+  resetExpired = false,
+}: {
+  compact?: boolean;
+  resetExpired?: boolean;
+}) {
   const router = useRouter();
   const setActiveBusiness = useBusinessStore((s) => s.setActiveBusiness);
   const [selectedSlug, setSelectedSlug] = useState<string>(
@@ -30,7 +37,11 @@ export function LoginForm({ compact = false }: { compact?: boolean }) {
   );
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    resetExpired
+      ? "This reset link is invalid or expired. Request a new one from Forgot password."
+      : null,
+  );
   const [loading, setLoading] = useState(false);
 
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -84,7 +95,7 @@ export function LoginForm({ compact = false }: { compact?: boolean }) {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       forgotEmail.trim(),
       {
-        redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
+        redirectTo: `${publicSiteUrl()}/auth/callback?next=/update-password`,
       },
     );
     setForgotLoading(false);

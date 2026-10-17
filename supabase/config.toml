@@ -22,8 +22,12 @@ enabled = true
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/**", "billingmobile://login-callback"]
+site_url = "https://billing.yourdreamcars.co.in"
+additional_redirect_urls = [
+  "https://billing.yourdreamcars.co.in/**",
+  "http://localhost:3000/**",
+  "billingmobile://login-callback",
+]
 enable_signup = true
 
 [auth.email]

@@ -8,6 +8,10 @@ export async function GET(request: Request) {
   const safeNext =
     next && next.startsWith("/") && !next.startsWith("//") ? next : null;
 
+  if (searchParams.get("error") || searchParams.get("error_code")) {
+    return NextResponse.redirect(new URL("/login?reset=expired", origin));
+  }
+
   if (code) {
     const supabase = await createClient();
     await supabase.auth.exchangeCodeForSession(code);
