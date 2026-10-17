@@ -7,9 +7,14 @@ import { createClient } from "@/lib/supabase/server";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; error_code?: string }>;
+  searchParams: Promise<{ error?: string; error_code?: string; code?: string }>;
 }) {
   const params = await searchParams;
+  if (params.code) {
+    redirect(
+      `/auth/callback?code=${encodeURIComponent(params.code)}&next=/update-password`,
+    );
+  }
   const resetExpired =
     params.error_code === "otp_expired" || params.error === "access_denied";
   const cookieStore = await cookies();

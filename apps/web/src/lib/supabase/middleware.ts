@@ -6,6 +6,7 @@ import {
   DEMO_COOKIE,
   DEMO_MODE,
 } from "@/lib/demo/data";
+import { publicSiteUrl } from "@/lib/site-url";
 
 function lockedDashboard(slug: string) {
   return `/b/${slug}/dashboard`;
@@ -13,6 +14,14 @@ function lockedDashboard(slug: string) {
 
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const authCode = request.nextUrl.searchParams.get("code");
+  if (authCode && (path === "/" || path === "/login")) {
+    const dest = new URL("/auth/callback", publicSiteUrl());
+    dest.searchParams.set("code", authCode);
+    dest.searchParams.set("next", "/update-password");
+    return NextResponse.redirect(dest);
+  }
+
   const isAuthRoute =
     path.startsWith("/login") ||
     path.startsWith("/forgot-password") ||
