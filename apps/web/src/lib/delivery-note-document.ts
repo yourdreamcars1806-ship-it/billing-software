@@ -449,6 +449,42 @@ export function buildDeliveryNoteHtml(
     color: #222;
   }
 
+  .warranty {
+    margin: 8px 0 4px;
+    border: 1px solid #333;
+    padding: 7px 9px;
+    background: #f7f7f7;
+  }
+  .warranty h4 {
+    margin: 0 0 4px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .warranty .w-en {
+    margin: 0 0 3px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #111;
+  }
+  .warranty .w-en-sub,
+  .warranty .w-mr-sub {
+    margin: 0 0 4px;
+    font-family: "Segoe UI", Arial, "Noto Sans Devanagari", sans-serif;
+    font-size: 9.5px;
+    color: #222;
+  }
+  .warranty .w-mr {
+    margin: 6px 0 3px;
+    font-family: "Segoe UI", Arial, "Noto Sans Devanagari", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #111;
+  }
+
   .footer-note {
     margin-top: 10px;
     font-family: "Segoe UI", Arial, sans-serif;
@@ -574,6 +610,14 @@ export function buildDeliveryNoteHtml(
           shall be completed according to the separately agreed terms.
         </p>
 
+        <div class="warranty">
+          <h4>6. Engine Warranty</h4>
+          <p class="w-en">3 Months Engine Warranty or 5000 KM (Whichever Comes First)</p>
+          <p class="w-en-sub">Only for engine warranty, not for electrical parts. T&amp;C apply.</p>
+          <p class="w-mr">३ महिने इंजिन वॉरंटी किंवा ५००० किलोमीटर (जे आधी होईल ते).</p>
+          <p class="w-mr-sub">इलेक्ट्रिकल पार्ट्ससाठी वॉरंटी नाही असे आणि अटी लागू.</p>
+        </div>
+
         <div class="sign-grid">
           <div class="sign-box">
             <h4>Customer Signature</h4>
@@ -597,7 +641,7 @@ export function buildDeliveryNoteHtml(
         ${
           data.cancel_terms_enabled
             ? `<div class="terms">
-          <h4>6. Deal Cancellation Charges</h4>
+          <h4>7. Deal Cancellation Charges</h4>
           <div class="nums">GST on cancellation: ${escapeHtml(gstLabel)}% &nbsp;|&nbsp; Paper processing fees: ${escapeHtml(feeLabel)}</div>
           <p>${escapeHtml(cancelText)}</p>
         </div>`

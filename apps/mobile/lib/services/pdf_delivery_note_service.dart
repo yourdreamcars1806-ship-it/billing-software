@@ -135,6 +135,21 @@ class PdfDeliveryNoteService {
             data.deliveryTime.trim(),
           ].where((x) => x.isNotEmpty && !x.contains('____')).join(' · ');
 
+    // Devanagari for Marathi warranty lines (Helvetica cannot draw those glyphs).
+    pw.Font? mrFont;
+    pw.Font? mrBold;
+    try {
+      mrFont = await PdfGoogleFonts.notoSansDevanagariRegular();
+      mrBold = await PdfGoogleFonts.notoSansDevanagariBold();
+    } catch (_) {
+      try {
+        mrFont = await PdfGoogleFonts.notoSansRegular();
+        mrBold = await PdfGoogleFonts.notoSansBold();
+      } catch (_) {}
+    }
+
+    final warrantyBox = _warrantyBox(marathi: mrFont, marathiBold: mrBold);
+
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
@@ -394,6 +409,8 @@ class PdfDeliveryNoteService {
                       textAlign: pw.TextAlign.justify,
                       style: const pw.TextStyle(fontSize: 9.5, color: _ink),
                     ),
+                    pw.SizedBox(height: 8),
+                    warrantyBox,
                     pw.SizedBox(height: 10),
 
                     pw.Row(
@@ -436,7 +453,7 @@ class PdfDeliveryNoteService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text(
-                              '6. DEAL CANCELLATION CHARGES',
+                              '7. DEAL CANCELLATION CHARGES',
                               style: pw.TextStyle(
                                 fontSize: 9.5,
                                 fontWeight: pw.FontWeight.bold,
@@ -504,6 +521,60 @@ class PdfDeliveryNoteService {
           pw.TextSpan(
             text: value,
             style: const pw.TextStyle(fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _warrantyBox({pw.Font? marathi, pw.Font? marathiBold}) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.fromLTRB(9, 7, 9, 7),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFF7F7F7),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF333333)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            '6. ENGINE WARRANTY',
+            style: pw.TextStyle(
+              fontSize: 9.5,
+              fontWeight: pw.FontWeight.bold,
+              letterSpacing: 0.4,
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            '3 Months Engine Warranty or 5000 KM (Whichever Comes First)',
+            style: pw.TextStyle(
+              fontSize: 10,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            'Only for engine warranty, not for electrical parts. T&C apply.',
+            style: const pw.TextStyle(fontSize: 9.5, color: _ink),
+          ),
+          pw.SizedBox(height: 5),
+          pw.Text(
+            '३ महिने इंजिन वॉरंटी किंवा ५००० किलोमीटर (जे आधी होईल ते).',
+            style: pw.TextStyle(
+              font: marathiBold ?? marathi,
+              fontSize: 10,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            'इलेक्ट्रिकल पार्ट्ससाठी वॉरंटी नाही असे आणि अटी लागू.',
+            style: pw.TextStyle(
+              font: marathi,
+              fontSize: 9.5,
+              color: _ink,
+            ),
           ),
         ],
       ),
